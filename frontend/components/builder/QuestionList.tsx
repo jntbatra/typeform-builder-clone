@@ -45,8 +45,9 @@ interface RowProps {
   onDelete: () => void;
 }
 
-// Row actions appear on hover or keyboard focus.
-const ROW_ACTION = "rounded px-1 text-muted opacity-0 hover:bg-subtle-strong hover:text-ink focus:opacity-100 group-hover:opacity-100";
+// .row-action (globals.css): takes no room until its .question-row is hovered or focused,
+// so titles get the full width. Always shown on phones, which have no hover.
+const ROW_ACTION = "row-action rounded px-1 text-muted hover:bg-subtle-strong hover:text-ink";
 
 function SortableRow({ question, number, selected, onSelect, onDuplicate, onDelete }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: question.id });
@@ -59,7 +60,7 @@ function SortableRow({ question, number, selected, onSelect, onDuplicate, onDele
       {...attributes}
       {...listeners}
       onClick={onSelect}
-      className={`group flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm ${
+      className={`question-row flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm ${
         selected ? "bg-subtle-strong" : "hover:bg-subtle"
       } ${isDragging ? "relative z-10 bg-surface shadow-lg" : ""}`}
     >
