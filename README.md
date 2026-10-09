@@ -51,7 +51,7 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-Twenty-one API tests cover ordering and reordering, option editing, publish rules, server-side
+Twenty-two API tests cover ordering and reordering, option editing, publish rules, server-side
 validation, logic jumps, file uploads, stats, duplication and cascading deletes. Each test runs against its own throwaway
 database.
 

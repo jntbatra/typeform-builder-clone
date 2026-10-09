@@ -91,6 +91,7 @@ export function QuestionCanvas({ builder, className = "flex" }: { builder: Build
           <div className="w-full max-w-xl py-10 text-center">
             <AutoTextarea
               aria-label="Welcome title"
+              maxLength={200}
               value={form.welcome_title}
               placeholder="Add a title to turn the welcome screen on"
               onChange={(event) => builder.updateForm({ welcome_title: event.target.value })}
@@ -117,6 +118,7 @@ export function QuestionCanvas({ builder, className = "flex" }: { builder: Build
           <div className="w-full max-w-xl py-10 text-center">
             <AutoTextarea
               aria-label="Thank you title"
+              maxLength={200}
               value={form.thank_you_title}
               placeholder="Say thanks..."
               onChange={(event) => builder.updateForm({ thank_you_title: event.target.value })}

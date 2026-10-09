@@ -98,7 +98,7 @@ class Question(Base):
 
     form: Mapped[Form] = relationship(back_populates="questions")
     options: Mapped[list["QuestionOption"]] = relationship(
-        back_populates="question", cascade="all, delete-orphan", order_by="QuestionOption.position"
+        back_populates="question", cascade="all, delete-orphan", order_by="QuestionOption.position", lazy="selectin"
     )
     answers: Mapped[list["Answer"]] = relationship(back_populates="question", cascade="all, delete-orphan")
     # Jumps leaving this question, checked in order; the first rule that matches wins.
@@ -107,6 +107,7 @@ class Question(Base):
         cascade="all, delete-orphan",
         order_by="LogicRule.position",
         foreign_keys="LogicRule.question_id",
+        lazy="selectin",
     )
 
 

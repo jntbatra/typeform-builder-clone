@@ -4,7 +4,8 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FormRunner } from "@/components/respondent/FormRunner";
 import { Loading } from "@/components/ui/Loading";
-import { api } from "@/lib/api";
+import { LoadError } from "@/components/ui/LoadError";
+import { api, type LoadProblem, problemOf } from "@/lib/api";
 import { toSubmission } from "@/lib/questions";
 import type { RunnableForm } from "@/lib/types";
 
@@ -12,7 +13,7 @@ import type { RunnableForm } from "@/lib/types";
 export default function PublicFormPage() {
   const { slug } = useParams<{ slug: string }>();
   const [form, setForm] = useState<RunnableForm | null>(null);
-  const [missing, setMissing] = useState(false);
+  const [problem, setProblem] = useState<LoadProblem | null>(null);
 
   useEffect(() => {
     api
@@ -23,10 +24,11 @@ export default function PublicFormPage() {
         // Counted once per page load; compared with responses for the completion rate.
         api.recordView(slug).catch(() => {});
       })
-      .catch(() => setMissing(true));
+      .catch((error) => setProblem(problemOf(error)));
   }, [slug]);
 
-  if (missing) {
+  if (problem === "failed") return <LoadError problem="failed" />;
+  if (problem === "missing") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-2 text-center">
         <h1 className="text-3xl">This form isn&apos;t available</h1>

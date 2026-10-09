@@ -3,8 +3,10 @@
 import { FormHeader } from "@/components/FormHeader";
 import { Button } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { LoadError } from "@/components/ui/LoadError";
 import { Loading } from "@/components/ui/Loading";
 import { api } from "@/lib/api";
+import { copyText } from "@/lib/clipboard";
 import { useForm } from "@/lib/useForm";
 
 const COMING_SOON = [
@@ -15,10 +17,10 @@ const COMING_SOON = [
 
 /** Publish state and the shareable public link. */
 export default function SharePage() {
-  const { form, setForm, notFound } = useForm();
+  const { form, setForm, problem } = useForm();
   const toast = useToast();
 
-  if (notFound) return <div className="flex min-h-screen items-center justify-center text-muted">Form not found.</div>;
+  if (problem) return <LoadError problem={problem} />;
   if (!form) return <Loading />;
 
   const published = form.status === "published";
@@ -34,8 +36,8 @@ export default function SharePage() {
   };
 
   const copy = async () => {
-    await navigator.clipboard.writeText(shareUrl);
-    toast("Link copied to clipboard");
+    if (await copyText(shareUrl)) toast("Link copied to clipboard");
+    else toast("Couldn't copy. Select the link and copy it manually.", "error");
   };
 
   return (

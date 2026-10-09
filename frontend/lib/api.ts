@@ -13,6 +13,13 @@ export class ApiError extends Error {
   }
 }
 
+/** Why a page's data could not be loaded: it does not exist, or the request failed. */
+export type LoadProblem = "missing" | "failed";
+
+// 422 is what the API answers for an id that is not a number (e.g. /forms/abc): also "missing".
+export const problemOf = (error: unknown): LoadProblem =>
+  error instanceof ApiError && (error.status === 404 || error.status === 422) ? "missing" : "failed";
+
 // The backend's free host sleeps when idle. While it wakes, the proxy answers 502/503/504
 // (or the request fails outright), so reads are retried for a while instead of failing.
 const WAKING_STATUSES = [502, 503, 504];

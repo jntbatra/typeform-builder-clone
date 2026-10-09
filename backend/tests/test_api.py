@@ -53,6 +53,13 @@ def test_choice_question_gets_default_options_and_keeps_ids_on_edit(client):
     assert edited["options"][0]["id"] == kept["id"]
 
 
+def test_rating_size_is_kept_within_limits(client):
+    _form, (question,) = new_form(client, "rating")
+    for sent, expected in ((99, 10), (0, 1), ("lots", 5), (7, 7)):
+        saved = client.patch(f"/api/questions/{question['id']}", json={"settings": {"max": sent}}).json()
+        assert saved["settings"]["max"] == expected
+
+
 def test_changing_type_away_from_choice_drops_the_options(client):
     _form, (question,) = new_form(client, "dropdown")
     edited = client.patch(f"/api/questions/{question['id']}", json={"type": "rating"}).json()

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type FormPatch, type QuestionPatch } from "./api";
+import { api, type FormPatch, type LoadProblem, problemOf, type QuestionPatch } from "./api";
 import type { Form, Question, QuestionType } from "./types";
 
 /** How long to wait after the last keystroke before saving an edit. */
@@ -42,7 +42,7 @@ function toApiPatch(patch: QuestionEdit): QuestionPatch {
  */
 export function useBuilder(formId: number, onError: (message: string) => void) {
   const [form, setForm] = useState<Form | null>(null);
-  const [notFound, setNotFound] = useState(false);
+  const [problem, setProblem] = useState<LoadProblem | null>(null);
   const [selectedId, setSelectedId] = useState<Selection>(null);
   const [savesInFlight, setSavesInFlight] = useState(0);
 
@@ -58,7 +58,7 @@ export function useBuilder(formId: number, onError: (message: string) => void) {
         setForm(loaded);
         setSelectedId(loaded.questions[0]?.id ?? "ending");
       })
-      .catch(() => setNotFound(true));
+      .catch((error) => setProblem(problemOf(error)));
   }, [formId]);
 
   /** Run a save, tracking it for the "Saving…" indicator and reporting failures. */
@@ -105,7 +105,11 @@ export function useBuilder(formId: number, onError: (message: string) => void) {
 
   const updateForm = (patch: FormPatch) => {
     setForm((current) => current && { ...current, ...patch });
-    pendingForm.current = { ...pendingForm.current, ...patch };
+    // A form must have a title. While the field is momentarily empty, keep typing responsive
+    // but do not send the blank value; the last non-empty title stays saved.
+    const { title, ...rest } = patch;
+    const toQueue = title !== undefined && title.trim() !== "" ? patch : rest;
+    pendingForm.current = { ...pendingForm.current, ...toQueue };
     schedule(
       0,
       () => {
@@ -171,7 +175,7 @@ export function useBuilder(formId: number, onError: (message: string) => void) {
 
   return {
     form,
-    notFound,
+    problem,
     saving: savesInFlight > 0,
     selectedId,
     setSelectedId,

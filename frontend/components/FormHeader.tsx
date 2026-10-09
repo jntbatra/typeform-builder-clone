@@ -45,6 +45,7 @@ export function FormHeader({ formId, title, active, onRename, children }: FormHe
         {onRename ? (
           <input
             aria-label="Form title"
+            maxLength={200}
             value={title}
             onChange={(event) => onRename(event.target.value)}
             className="min-w-0 max-w-64 flex-1 truncate rounded px-1.5 py-1 outline-none hover:bg-subtle focus:bg-subtle"

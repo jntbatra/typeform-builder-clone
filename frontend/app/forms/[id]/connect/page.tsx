@@ -1,6 +1,7 @@
 "use client";
 
 import { FormHeader } from "@/components/FormHeader";
+import { LoadError } from "@/components/ui/LoadError";
 import { Loading } from "@/components/ui/Loading";
 import { useForm } from "@/lib/useForm";
 
@@ -15,9 +16,9 @@ const INTEGRATIONS = [
 
 /** Integrations are out of scope for this build, so this page is a labelled placeholder. */
 export default function ConnectPage() {
-  const { form, notFound } = useForm();
+  const { form, problem } = useForm();
 
-  if (notFound) return <div className="flex min-h-screen items-center justify-center text-muted">Form not found.</div>;
+  if (problem) return <LoadError problem={problem} />;
   if (!form) return <Loading />;
 
   return (

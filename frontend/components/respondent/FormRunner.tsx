@@ -43,6 +43,9 @@ export function FormRunner({ form, onSubmit, onUpload, embedded = false }: FormR
   const showWelcome = form.welcome_title.trim() !== "" && !started;
   // A ref, not state: it must block a second submit triggered before the next render.
   const submitting = useRef(false);
+  // Timer for the pause before auto-advancing after a pick; cancelled by any other navigation.
+  const autoAdvance = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(autoAdvance.current), []);
 
   const question = questions[index];
   // Logic jumps decide what comes next, so "next" and "previous" are read off the
@@ -54,6 +57,7 @@ export function FormRunner({ form, onSubmit, onUpload, embedded = false }: FormR
   const progress = done ? 100 : questions.length ? (index / questions.length) * 100 : 0;
 
   const goTo = (target: number, message: string | null = null) => {
+    clearTimeout(autoAdvance.current);
     setDirection(target >= index ? 1 : -1);
     setIndex(target);
     setError(message);
@@ -106,7 +110,8 @@ export function FormRunner({ form, onSubmit, onUpload, embedded = false }: FormR
     const next = { ...answers, [question.id]: value };
     setAnswers(next);
     setError(null);
-    setTimeout(() => advance(next), AUTO_ADVANCE_MS);
+    clearTimeout(autoAdvance.current);
+    autoAdvance.current = setTimeout(() => advance(next), AUTO_ADVANCE_MS);
   };
 
   // Keyboard: Enter to continue, arrows to move, and shortcut keys for single-pick answers.

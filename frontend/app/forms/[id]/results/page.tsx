@@ -6,6 +6,7 @@ import { ResponsesTable } from "@/components/results/ResponsesTable";
 import { Summary } from "@/components/results/Summary";
 import { Button } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { LoadError } from "@/components/ui/LoadError";
 import { Loading } from "@/components/ui/Loading";
 import { api } from "@/lib/api";
 import type { FormResponse, FormStats } from "@/lib/types";
@@ -15,11 +16,12 @@ const VIEWS = ["Summary", "Responses"] as const;
 
 /** Results for one form: aggregate summary and the individual submissions. */
 export default function ResultsPage() {
-  const { formId, form, notFound } = useForm();
+  const { formId, form, problem } = useForm();
   const toast = useToast();
   const [view, setView] = useState<(typeof VIEWS)[number]>("Summary");
   const [stats, setStats] = useState<FormStats | null>(null);
   const [responses, setResponses] = useState<FormResponse[] | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     Promise.all([api.getStats(formId), api.listResponses(formId)])
@@ -27,10 +29,11 @@ export default function ResultsPage() {
         setStats(loadedStats);
         setResponses(loadedResponses);
       })
-      .catch(() => {});
+      .catch(() => setFailed(true));
   }, [formId]);
 
-  if (notFound) return <div className="flex min-h-screen items-center justify-center text-muted">Form not found.</div>;
+  if (problem) return <LoadError problem={problem} />;
+  if (failed) return <LoadError problem="failed" />;
   if (!form || !stats || !responses) return <Loading />;
 
   const deleteResponse = async (id: number) => {

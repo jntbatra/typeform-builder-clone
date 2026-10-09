@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Button, Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
+import { copyText } from "@/lib/clipboard";
 import type { FormSummary } from "@/lib/types";
 import { formatDate } from "@/lib/useForm";
 
@@ -42,7 +43,16 @@ export default function DashboardPage() {
     return (forms ?? []).filter((form) => form.title.toLowerCase().includes(wanted)).sort(SORTS[sort].compare);
   }, [forms, query, sort]);
 
-  const reload = () => api.listForms().then(setForms).catch(() => toast("Couldn't load your forms", "error"));
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  const reload = () =>
+    api
+      .listForms()
+      .then(setForms)
+      .catch(() => {
+        setLoadFailed(true);
+        toast("Couldn't load your forms", "error");
+      });
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,8 +85,8 @@ export default function DashboardPage() {
   };
 
   const copyLink = async (form: FormSummary) => {
-    await navigator.clipboard.writeText(`${window.location.origin}/to/${form.slug}`);
-    toast("Link copied to clipboard");
+    const copied = await copyText(`${window.location.origin}/to/${form.slug}`);
+    toast(copied ? "Link copied to clipboard" : "Couldn't copy the link", copied ? "success" : "error");
   };
 
   return (
@@ -117,7 +127,15 @@ export default function DashboardPage() {
               </Button>
             </div>
 
-            {forms === null ? (
+            {forms === null && loadFailed ? (
+              <div className="mt-10 rounded-xl bg-surface p-12 text-center ring-1 ring-line">
+                <p className="text-lg">We couldn&apos;t load your forms</p>
+                <p className="mt-1 text-sm text-muted">The server may be starting up.</p>
+                <Button className="mt-4" onClick={() => window.location.reload()}>
+                  Try again
+                </Button>
+              </div>
+            ) : forms === null ? (
               <Loading fullScreen={false} />
             ) : forms.length === 0 ? (
               <div className="mt-10 rounded-xl bg-surface p-12 text-center ring-1 ring-line">

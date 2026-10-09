@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { QuestionCanvas } from "@/components/builder/QuestionCanvas";
 import { QuestionList } from "@/components/builder/QuestionList";
 import { SettingsPanel } from "@/components/builder/SettingsPanel";
@@ -9,7 +9,9 @@ import { FormHeader } from "@/components/FormHeader";
 import { FormRunner } from "@/components/respondent/FormRunner";
 import { Button } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { LoadError } from "@/components/ui/LoadError";
 import { Loading } from "@/components/ui/Loading";
+import { copyText } from "@/lib/clipboard";
 import { useBuilder } from "@/lib/useBuilder";
 
 const PANELS = ["Questions", "Edit", "Settings"] as const;
@@ -26,7 +28,15 @@ export default function CreatePage() {
   const [panel, setPanel] = useState<Panel>("Edit");
   const { form } = builder;
 
-  if (builder.notFound) return <div className="flex min-h-screen items-center justify-center text-muted">Form not found.</div>;
+  // Escape closes the preview, like any other overlay.
+  useEffect(() => {
+    if (!previewing) return;
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setPreviewing(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [previewing]);
+
+  if (builder.problem) return <LoadError problem={builder.problem} />;
   if (!form) return <Loading />;
 
   const published = form.status === "published";
@@ -38,8 +48,8 @@ export default function CreatePage() {
     if (!published && form.questions.length === 0) return toast("Add at least one question before publishing", "error");
     if (!(await builder.setPublished(!published))) return;
     if (published) return toast("Form unpublished. The link no longer works.");
-    await navigator.clipboard?.writeText(shareUrl).catch(() => {});
-    toast("Form published. Link copied to clipboard.");
+    const copied = await copyText(shareUrl);
+    toast(copied ? "Form published. Link copied to clipboard." : "Form published. Find its link on the Share tab.");
   };
 
   return (

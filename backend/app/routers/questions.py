@@ -12,6 +12,14 @@ router = APIRouter(prefix="/api", tags=["questions"])
 DEFAULT_OPTIONS = ("Choice 1", "Choice 2")
 
 
+def rating_size(value) -> int:
+    """A usable number of stars: whatever was asked for, kept between 1 and 10, or 5 if unreadable."""
+    try:
+        return max(1, min(int(value), 10))
+    except (TypeError, ValueError):
+        return 5
+
+
 def apply_type_defaults(question: models.Question) -> None:
     """Make a question's options and settings consistent with its type."""
     if question.type in models.CHOICE_TYPES:
@@ -21,8 +29,8 @@ def apply_type_defaults(question: models.Question) -> None:
             ]
     else:
         question.options = []
-    if question.type == "rating" and "max" not in question.settings:
-        question.settings = {**question.settings, "max": 5}
+    if question.type == "rating":
+        question.settings = {**question.settings, "max": rating_size(question.settings.get("max"))}
 
 
 def renumber(questions: list[models.Question]) -> None:
