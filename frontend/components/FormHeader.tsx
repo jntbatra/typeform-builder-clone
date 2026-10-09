@@ -32,15 +32,15 @@ export function Logo() {
 /** Top bar shared by every page of a single form: breadcrumb, section tabs, actions. */
 export function FormHeader({ formId, title, active, onRename, children }: FormHeaderProps) {
   return (
-    <header className="flex h-14 shrink-0 items-center border-b border-line bg-white px-4">
-      <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+    <header className="flex shrink-0 flex-wrap items-center border-b border-line bg-white px-4 md:h-14 md:flex-nowrap">
+      <div className="flex h-14 min-w-0 flex-1 items-center gap-2 text-sm">
         <Link href="/">
           <Logo />
         </Link>
-        <Link href="/" className="shrink-0 text-muted hover:text-ink">
+        <Link href="/" className="hidden shrink-0 text-muted hover:text-ink sm:inline">
           My workspace
         </Link>
-        <span className="text-muted">/</span>
+        <span className="hidden text-muted sm:inline">/</span>
         {onRename ? (
           <input
             aria-label="Form title"
@@ -53,7 +53,7 @@ export function FormHeader({ formId, title, active, onRename, children }: FormHe
         )}
       </div>
 
-      <nav className="flex h-full items-stretch gap-6">
+      <nav className="order-last flex h-10 w-full items-stretch justify-center gap-6 md:order-none md:h-full md:w-auto">
         {TABS.map((tab) => (
           <Link
             key={tab.key}
@@ -67,7 +67,7 @@ export function FormHeader({ formId, title, active, onRename, children }: FormHe
         ))}
       </nav>
 
-      <div className="flex flex-1 items-center justify-end gap-2">{children}</div>
+      <div className="flex h-14 items-center justify-end gap-2 md:flex-1">{children}</div>
     </header>
   );
 }

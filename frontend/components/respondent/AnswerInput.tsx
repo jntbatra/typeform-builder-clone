@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { QUESTION_TYPES } from "@/lib/questions";
 import type { AnswerValue, Question } from "@/lib/types";
 
@@ -41,10 +42,9 @@ export function AnswerInput({ question, value, onChange, onPick, readOnly = fals
     case "long_text":
       return (
         <div>
-          <textarea
+          <AutoTextarea
             {...common}
-            className="tf-input"
-            rows={Math.min(6, Math.max(1, text.split("\n").length))}
+            className="tf-input max-h-64"
             value={text}
             onChange={(event) => onChange(event.target.value)}
           />

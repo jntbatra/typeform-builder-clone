@@ -31,7 +31,7 @@ function ComingSoon({ title, children }: { title: string; children: string }) {
 }
 
 /** Right sidebar of the builder: per-question settings, theme, and placeholders. */
-export function SettingsPanel({ builder }: { builder: Builder }) {
+export function SettingsPanel({ builder, className = "flex" }: { builder: Builder; className?: string }) {
   const [tab, setTab] = useState<(typeof PANEL_TABS)[number]>("Question");
   const { form, selectedId } = builder;
   if (!form) return null;
@@ -39,7 +39,7 @@ export function SettingsPanel({ builder }: { builder: Builder }) {
   const theme = { ...DEFAULT_THEME, ...form.theme };
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-l border-line bg-white">
+    <aside className={`w-full shrink-0 flex-col border-l border-line bg-white md:w-72 ${className}`}>
       <div className="flex gap-5 border-b border-line px-4">
         {PANEL_TABS.map((name) => (
           <button

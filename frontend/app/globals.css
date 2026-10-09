@@ -29,6 +29,12 @@ body {
   transition: box-shadow 0.15s ease;
   resize: none;
 }
+@media (max-width: 640px) {
+  .tf-input {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+}
 .tf-input::placeholder {
   color: color-mix(in srgb, var(--tf-primary) 30%, transparent);
 }

@@ -2,7 +2,7 @@
 
 import secrets
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -118,6 +118,8 @@ def duplicate_form(form: models.Form = Depends(get_owned_form), db: Session = De
 
 @router.post("/{form_id}/publish", response_model=schemas.FormOut)
 def publish_form(form: models.Form = Depends(get_owned_form), db: Session = Depends(get_db)):
+    if not form.questions:
+        raise HTTPException(400, "Add at least one question before publishing")
     form.status = "published"
     form.published_at = models.utcnow()
     db.commit()

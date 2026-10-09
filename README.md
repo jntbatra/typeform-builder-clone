@@ -11,7 +11,7 @@ one-question-at-a-time conversational flow, and read the results.
 
 | Area | What works |
 | --- | --- |
-| Form builder | Add, edit, drag-to-reorder and delete questions. Eight types: short text, long text, multiple choice, dropdown, email, number, yes/no, rating. Required toggle, description, placeholder, inline editing on a live canvas, full-screen preview. Edits autosave. |
+| Form builder | Add, edit, drag-to-reorder and delete questions. Eight types: short text, long text, multiple choice, dropdown, email, number, yes/no, rating. Required toggle, description, placeholder, inline editing on a live canvas, full-screen preview. Edits autosave. Usable on a phone (one panel at a time). |
 | Form management | List with status, response count and completion rate. Create, rename, duplicate, delete. Publish / unpublish with a public link. |
 | Respondent flow | One question per screen with slide transitions, progress bar, Enter to continue, arrow keys to move, letter / number shortcuts for choices and ratings, auto-advance on pick, client and server validation, thank-you screen. No login. |
 | Results | Summary stats per question (counts, averages, recent answers), responses table, single response drawer, delete. |
@@ -39,6 +39,18 @@ The database file `backend/formflow.db` is created and seeded on first start wit
 forms, one draft, and 23 sample responses. To reset it: `python -m app.seed --reset`.
 
 Try the seeded public forms at `/to/feedback` and `/to/devconf`.
+
+### Tests
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+Twelve API tests cover ordering and reordering, option editing, publish rules, server-side
+validation, stats, duplication and cascading deletes. Each test runs against its own throwaway
+database.
 
 | Variable | Where | Default | Purpose |
 | --- | --- | --- | --- |
@@ -155,6 +167,7 @@ All routes are under `/api`. Interactive docs: `http://localhost:8000/docs`.
 - Creator authentication is out of scope. Every creator request acts as one seeded default creator,
   resolved in a single dependency (`deps.get_current_creator`) so real auth can replace it.
 - Multiple choice is single-select.
+- A form needs at least one question before it can be published.
 - A "view" is counted each time the public page loads; completion rate is responses ÷ views.
 - On hosts with an ephemeral disk, SQLite is re-created and re-seeded when the service restarts.
   A persistent disk or a hosted database (via `DATABASE_URL`) avoids that.

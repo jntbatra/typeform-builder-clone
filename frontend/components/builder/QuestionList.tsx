@@ -116,8 +116,23 @@ function AddQuestionMenu({ onAdd }: { onAdd: (type: QuestionType) => void }) {
 }
 
 /** Left sidebar of the builder: the ordered, drag-to-reorder list of questions. */
-export function QuestionList({ builder }: { builder: Builder }) {
-  const { form, selectedId, setSelectedId } = builder;
+interface QuestionListProps {
+  builder: Builder;
+  className?: string;
+  /** Called after the user picks or adds an item, so the page can bring the editor into view. */
+  onNavigate?: () => void;
+}
+
+export function QuestionList({ builder, className = "flex", onNavigate }: QuestionListProps) {
+  const { form, selectedId } = builder;
+  const select = (id: number | "ending") => {
+    builder.setSelectedId(id);
+    onNavigate?.();
+  };
+  const add = async (type: QuestionType) => {
+    await builder.addQuestion(type);
+    onNavigate?.();
+  };
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -132,9 +147,9 @@ export function QuestionList({ builder }: { builder: Builder }) {
   };
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-white">
+    <aside className={`w-full shrink-0 flex-col border-r border-line bg-white md:w-64 ${className}`}>
       <div className="p-3">
-        <AddQuestionMenu onAdd={builder.addQuestion} />
+        <AddQuestionMenu onAdd={add} />
       </div>
       <div className="flex-1 overflow-y-auto px-2">
         {form.questions.length === 0 && (
@@ -149,7 +164,7 @@ export function QuestionList({ builder }: { builder: Builder }) {
                   question={question}
                   number={index + 1}
                   selected={selectedId === question.id}
-                  onSelect={() => setSelectedId(question.id)}
+                  onSelect={() => select(question.id)}
                   onDelete={() => builder.deleteQuestion(question.id)}
                 />
               ))}
@@ -160,7 +175,7 @@ export function QuestionList({ builder }: { builder: Builder }) {
       <div className="border-t border-line p-2">
         <p className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted">Endings</p>
         <button
-          onClick={() => setSelectedId("ending")}
+          onClick={() => select("ending")}
           className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm ${
             selectedId === "ending" ? "bg-neutral-200/70" : "hover:bg-neutral-100"
           }`}

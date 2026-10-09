@@ -1,13 +1,15 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { AnswerInput } from "@/components/respondent/AnswerInput";
 import { DEFAULT_THEME } from "@/components/respondent/FormRunner";
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { isChoiceType } from "@/lib/questions";
 import type { Question } from "@/lib/types";
 import { type Builder, type QuestionEdit, tempOptionId } from "@/lib/useBuilder";
 
-// Text fields that look like the final text and grow with their content.
-const INLINE_FIELD = "w-full resize-none bg-transparent outline-none [field-sizing:content] placeholder:opacity-40";
+// Text fields styled to look like the final text rather than like form inputs.
+const INLINE_FIELD = "block w-full resize-none overflow-hidden bg-transparent outline-none placeholder:opacity-40";
 
 interface ChoiceEditorProps {
   question: Question;
@@ -18,9 +20,24 @@ interface ChoiceEditorProps {
 function ChoiceEditor({ question, onChange }: ChoiceEditorProps) {
   const { options } = question;
   const setOptions = (next: Question["options"]) => onChange({ options: next });
+  const list = useRef<HTMLDivElement>(null);
+  // Set when a choice is added, so the new field takes focus once it has rendered.
+  const focusNewChoice = useRef(false);
+
+  const addChoice = () => {
+    focusNewChoice.current = true;
+    setOptions([...options, { id: tempOptionId(), label: "", position: options.length }]);
+  };
+
+  useEffect(() => {
+    if (!focusNewChoice.current) return;
+    focusNewChoice.current = false;
+    const inputs = list.current?.querySelectorAll("input");
+    inputs?.[inputs.length - 1]?.focus();
+  }, [options.length]);
 
   return (
-    <div className="flex max-w-sm flex-col gap-2">
+    <div ref={list} className="flex max-w-sm flex-col gap-2">
       {options.map((option, index) => (
         // Keyed by index, not id: a new option's temporary id is swapped for the real one
         // after saving, and an id key would remount the input and drop focus mid-typing.
@@ -31,6 +48,7 @@ function ChoiceEditor({ question, onChange }: ChoiceEditorProps) {
             value={option.label}
             placeholder={`Choice ${index + 1}`}
             onChange={(event) => setOptions(options.map((o) => (o.id === option.id ? { ...o, label: event.target.value } : o)))}
+            onKeyDown={(event) => event.key === "Enter" && addChoice()}
             className="min-w-0 flex-1 bg-transparent outline-none"
           />
           {options.length > 1 && (
@@ -45,7 +63,7 @@ function ChoiceEditor({ question, onChange }: ChoiceEditorProps) {
         </div>
       ))}
       <button
-        onClick={() => setOptions([...options, { id: tempOptionId(), label: "", position: options.length }])}
+        onClick={addChoice}
         className="self-start text-sm underline"
         style={{ color: "var(--tf-primary)" }}
       >
@@ -56,7 +74,7 @@ function ChoiceEditor({ question, onChange }: ChoiceEditorProps) {
 }
 
 /** Centre of the builder: a live, editable rendering of the selected question or ending. */
-export function QuestionCanvas({ builder }: { builder: Builder }) {
+export function QuestionCanvas({ builder, className = "flex" }: { builder: Builder; className?: string }) {
   const { form, selectedId } = builder;
   if (!form) return null;
   const theme = { ...DEFAULT_THEME, ...form.theme };
@@ -72,24 +90,22 @@ export function QuestionCanvas({ builder }: { builder: Builder }) {
   } as React.CSSProperties;
 
   return (
-    <section className="flex min-w-0 flex-1 items-center justify-center overflow-auto bg-canvas p-8">
+    <section className={`min-w-0 flex-1 items-center justify-center overflow-auto bg-canvas p-3 md:p-8 ${className}`}>
       <div
-        className="flex aspect-[16/10] w-full max-w-4xl items-center justify-center overflow-y-auto rounded-xl px-10 shadow-sm ring-1 ring-black/5 md:px-20"
+        className="flex min-h-[60vh] w-full max-w-4xl items-center justify-center overflow-y-auto rounded-xl px-5 shadow-sm ring-1 ring-black/5 md:aspect-[16/10] md:min-h-0 md:px-20"
         style={themeVars}
       >
         {selectedId === "ending" ? (
           <div className="w-full max-w-xl py-10 text-center">
-            <textarea
+            <AutoTextarea
               aria-label="Thank you title"
-              rows={1}
               value={form.thank_you_title}
               placeholder="Say thanks..."
               onChange={(event) => builder.updateForm({ thank_you_title: event.target.value })}
               className={`${INLINE_FIELD} text-center text-4xl`}
             />
-            <textarea
+            <AutoTextarea
               aria-label="Thank you message"
-              rows={1}
               value={form.thank_you_message}
               placeholder="Add a message (optional)"
               onChange={(event) => builder.updateForm({ thank_you_message: event.target.value })}
@@ -106,9 +122,8 @@ export function QuestionCanvas({ builder }: { builder: Builder }) {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start">
-                  <textarea
+                  <AutoTextarea
                     aria-label="Question title"
-                    rows={1}
                     autoFocus={!question.title}
                     value={question.title}
                     placeholder="Your question here."
@@ -117,9 +132,8 @@ export function QuestionCanvas({ builder }: { builder: Builder }) {
                   />
                   {question.required && <span className="text-2xl leading-8">*</span>}
                 </div>
-                <textarea
+                <AutoTextarea
                   aria-label="Question description"
-                  rows={1}
                   value={question.description}
                   placeholder="Description (optional)"
                   onChange={(event) => builder.updateQuestion(question.id, { description: event.target.value })}
