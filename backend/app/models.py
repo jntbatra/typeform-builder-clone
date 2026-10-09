@@ -64,6 +64,10 @@ class Form(Base):
     slug: Mapped[str] = mapped_column(String(16), unique=True, index=True)
     status: Mapped[str] = mapped_column(String(16), default="draft")  # draft | published
     theme: Mapped[dict] = mapped_column(JSON, default=dict)
+    # Optional opening screen; it is shown only when welcome_title is not empty.
+    welcome_title: Mapped[str] = mapped_column(String(200), default="")
+    welcome_message: Mapped[str] = mapped_column(Text, default="")
+    welcome_button: Mapped[str] = mapped_column(String(40), default="Start")
     thank_you_title: Mapped[str] = mapped_column(String(200), default="Thanks for your time!")
     thank_you_message: Mapped[str] = mapped_column(Text, default="Your response has been recorded.")
     # Times the public form was opened; with the response count this gives a completion rate.

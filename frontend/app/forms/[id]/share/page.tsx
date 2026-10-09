@@ -3,6 +3,7 @@
 import { FormHeader } from "@/components/FormHeader";
 import { Button } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { Loading } from "@/components/ui/Loading";
 import { api } from "@/lib/api";
 import { useForm } from "@/lib/useForm";
 
@@ -18,7 +19,7 @@ export default function SharePage() {
   const toast = useToast();
 
   if (notFound) return <div className="flex min-h-screen items-center justify-center text-muted">Form not found.</div>;
-  if (!form) return <div className="flex min-h-screen items-center justify-center text-muted">Loading…</div>;
+  if (!form) return <Loading />;
 
   const published = form.status === "published";
   const shareUrl = `${window.location.origin}/to/${form.slug}`;

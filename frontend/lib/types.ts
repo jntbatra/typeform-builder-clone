@@ -47,6 +47,7 @@ export interface Theme {
   primary?: string;
   background?: string;
   text?: string;
+  font?: "sans" | "serif" | "mono";
 }
 
 export type FormStatus = "draft" | "published";
@@ -67,6 +68,10 @@ export interface FormSummary {
 export interface RunnableForm {
   title: string;
   theme: Theme;
+  /** The welcome screen is shown only when this is not empty. */
+  welcome_title: string;
+  welcome_message: string;
+  welcome_button: string;
   thank_you_title: string;
   thank_you_message: string;
   questions: Question[];

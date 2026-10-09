@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FormRunner } from "@/components/respondent/FormRunner";
+import { Loading } from "@/components/ui/Loading";
 import { api } from "@/lib/api";
 import { toSubmission } from "@/lib/questions";
 import type { RunnableForm } from "@/lib/types";
@@ -33,7 +34,7 @@ export default function PublicFormPage() {
       </div>
     );
   }
-  if (!form) return <div className="flex min-h-screen items-center justify-center text-muted">Loading…</div>;
+  if (!form) return <Loading />;
 
   return (
     <FormRunner

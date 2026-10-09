@@ -7,6 +7,9 @@ import type { Form, Question, QuestionType } from "./types";
 /** How long to wait after the last keystroke before saving an edit. */
 const SAVE_DELAY_MS = 500;
 
+/** What the builder is editing: a question (by id), the welcome screen, or the thank-you screen. */
+export type Selection = number | "welcome" | "ending" | null;
+
 /** Temporary id for an option that the server has not seen yet. */
 let nextTempId = -1;
 export const tempOptionId = () => nextTempId--;
@@ -40,7 +43,7 @@ function toApiPatch(patch: QuestionEdit): QuestionPatch {
 export function useBuilder(formId: number, onError: (message: string) => void) {
   const [form, setForm] = useState<Form | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | "ending" | null>(null);
+  const [selectedId, setSelectedId] = useState<Selection>(null);
   const [savesInFlight, setSavesInFlight] = useState(0);
 
   // Unsaved edits per question, plus one slot (key 0) for form-level fields.
@@ -121,6 +124,21 @@ export function useBuilder(formId: number, onError: (message: string) => void) {
     setSelectedId(created.id);
   };
 
+  const duplicateQuestion = async (id: number) => {
+    // Save any edit still waiting on the timer first, so the copy is made from what is on screen.
+    clearTimeout(timers.current.get(id));
+    await flushQuestion(id);
+    const copy = await track(() => api.duplicateQuestion(id));
+    if (!copy) return;
+    setForm((current) => {
+      if (!current) return current;
+      const questions = [...current.questions];
+      questions.splice(questions.findIndex((q) => q.id === id) + 1, 0, copy);
+      return { ...current, questions: questions.map((q, position) => ({ ...q, position })) };
+    });
+    setSelectedId(copy.id);
+  };
+
   const deleteQuestion = async (id: number) => {
     if (!form) return;
     const remaining = form.questions
@@ -160,6 +178,7 @@ export function useBuilder(formId: number, onError: (message: string) => void) {
     updateForm,
     addQuestion,
     updateQuestion,
+    duplicateQuestion,
     deleteQuestion,
     reorderQuestions,
     setPublished,

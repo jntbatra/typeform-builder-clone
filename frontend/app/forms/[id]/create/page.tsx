@@ -9,6 +9,7 @@ import { FormHeader } from "@/components/FormHeader";
 import { FormRunner } from "@/components/respondent/FormRunner";
 import { Button } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { Loading } from "@/components/ui/Loading";
 import { useBuilder } from "@/lib/useBuilder";
 
 const PANELS = ["Questions", "Edit", "Settings"] as const;
@@ -26,7 +27,7 @@ export default function CreatePage() {
   const { form } = builder;
 
   if (builder.notFound) return <div className="flex min-h-screen items-center justify-center text-muted">Form not found.</div>;
-  if (!form) return <div className="flex min-h-screen items-center justify-center text-muted">Loading…</div>;
+  if (!form) return <Loading />;
 
   const published = form.status === "published";
   const shareUrl = `${window.location.origin}/to/${form.slug}`;

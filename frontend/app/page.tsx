@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Logo } from "@/components/FormHeader";
+import { Loading } from "@/components/ui/Loading";
 import { Menu } from "@/components/ui/Menu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Button, Modal } from "@/components/ui/Modal";
@@ -15,6 +16,14 @@ import { formatDate } from "@/lib/useForm";
 /** Which dialog is open, and for which form. */
 type Dialog = { kind: "create" } | { kind: "rename"; form: FormSummary } | { kind: "delete"; form: FormSummary } | null;
 
+/** Sort orders offered on the dashboard. The API already returns "updated" order. */
+const SORTS = {
+  updated: { label: "Last updated", compare: () => 0 },
+  name: { label: "Name (A–Z)", compare: (a: FormSummary, b: FormSummary) => a.title.localeCompare(b.title) },
+  responses: { label: "Most responses", compare: (a: FormSummary, b: FormSummary) => b.response_count - a.response_count },
+};
+type SortKey = keyof typeof SORTS;
+
 const completion = (form: FormSummary) =>
   form.view_count ? `${Math.min(100, Math.round((form.response_count / form.view_count) * 100))}%` : "—";
 
@@ -25,6 +34,13 @@ export default function DashboardPage() {
   const [forms, setForms] = useState<FormSummary[] | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [name, setName] = useState("");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortKey>("updated");
+
+  const visible = useMemo(() => {
+    const wanted = query.trim().toLowerCase();
+    return (forms ?? []).filter((form) => form.title.toLowerCase().includes(wanted)).sort(SORTS[sort].compare);
+  }, [forms, query, sort]);
 
   const reload = () => api.listForms().then(setForms).catch(() => toast("Couldn't load your forms", "error"));
   useEffect(() => {
@@ -102,7 +118,7 @@ export default function DashboardPage() {
             </div>
 
             {forms === null ? (
-              <p className="mt-10 text-center text-muted">Loading…</p>
+              <Loading fullScreen={false} />
             ) : forms.length === 0 ? (
               <div className="mt-10 rounded-xl bg-surface p-12 text-center ring-1 ring-line">
                 <p className="text-lg">You don&apos;t have any forms yet</p>
@@ -112,6 +128,29 @@ export default function DashboardPage() {
               </div>
             ) : (
               <>
+                <div className="mt-5 flex gap-2">
+                  <input
+                    type="search"
+                    aria-label="Search forms"
+                    placeholder="Search forms"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    className="h-9 min-w-0 flex-1 rounded-md border border-line bg-surface px-3 text-sm outline-none focus:border-ink sm:max-w-xs"
+                  />
+                  <select
+                    aria-label="Sort forms"
+                    value={sort}
+                    onChange={(event) => setSort(event.target.value as SortKey)}
+                    className="h-9 rounded-md border border-line bg-surface px-2 text-sm outline-none focus:border-ink"
+                  >
+                    {(Object.keys(SORTS) as SortKey[]).map((key) => (
+                      <option key={key} value={key}>
+                        {SORTS[key].label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {visible.length === 0 && <p className="mt-10 text-center text-sm text-muted">No forms match “{query}”.</p>}
                 <div className="mt-6 hidden grid-cols-[1fr_110px_110px_110px_170px_40px] gap-2 px-4 text-xs text-muted sm:grid">
                   <span />
                   <span>Status</span>
@@ -120,7 +159,7 @@ export default function DashboardPage() {
                   <span>Updated</span>
                 </div>
                 <ul className="mt-2 flex flex-col gap-2">
-                  {forms.map((form) => (
+                  {visible.map((form) => (
                     <li
                       key={form.id}
                       className="grid grid-cols-[1fr_40px] items-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm ring-1 ring-line hover:shadow-md sm:grid-cols-[1fr_110px_110px_110px_170px_40px]"

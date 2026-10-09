@@ -11,14 +11,14 @@ one-question-at-a-time conversational flow, and read the results.
 
 | Area | What works |
 | --- | --- |
-| Form builder | Add, edit, drag-to-reorder and delete questions. Nine types: short text, long text, multiple choice, dropdown, email, number, yes/no, rating, file upload. Required toggle, description, placeholder, inline editing on a live canvas, full-screen preview. Edits autosave. Usable on a phone (one panel at a time). |
-| Form management | List with status, response count and completion rate. Create, rename, duplicate, delete. Publish / unpublish with a public link. |
+| Form builder | Add, edit, duplicate, drag-to-reorder and delete questions. Nine types: short text, long text, multiple choice, dropdown, email, number, yes/no, rating, file upload. Required toggle, description, placeholder, inline editing on a live canvas, full-screen preview. Optional welcome screen and editable thank-you screen. Edits autosave. Usable on a phone (one panel at a time). |
+| Form management | List with status, response count and completion rate, with search and sort. Create, rename, duplicate, delete. Publish / unpublish with a public link. |
 | Respondent flow | One question per screen with slide transitions, progress bar, Enter to continue, arrow keys to move, letter / number shortcuts for choices and ratings, auto-advance on pick, client and server validation, thank-you screen. No login. |
 | Results | Summary stats per question (counts, averages, recent answers), responses table, single response drawer, delete. |
 | Logic jumps | Per-question rules ("if the answer is X, go to question Y" or "to the end"). The respondent flow follows them, Back retraces the path actually taken, and the server validates only the questions that were shown. |
 | File upload | Click-or-drop upload (5 MB limit) stored with the response and downloadable from the results. |
 | Dark mode | Light / dark switch for the creator screens, remembered per browser. |
-| Other bonus | Custom themes (presets and colour pickers), CSV export, view tracking and completion rate. |
+| Other bonus | Custom themes (presets, colour pickers and fonts), CSV export, view tracking and completion rate. |
 | Placeholders | Integrations / webhooks, team sharing, embed, scoring and payment questions are marked "Coming soon". |
 
 ## Run it locally
@@ -51,7 +51,7 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-Nineteen API tests cover ordering and reordering, option editing, publish rules, server-side
+Twenty-one API tests cover ordering and reordering, option editing, publish rules, server-side
 validation, logic jumps, file uploads, stats, duplication and cascading deletes. Each test runs against its own throwaway
 database.
 
@@ -97,12 +97,13 @@ frontend/
     respondent/AnswerInput.tsx  the answer control for each question type
     builder/                    QuestionList (drag and drop), QuestionCanvas, SettingsPanel, LogicEditor
     results/                    Summary, ResponsesTable
-    ui/                         Modal, Menu, Toast, Toggle, ThemeToggle, AutoTextarea
+    ui/                         Modal, Menu, Toast, Toggle, ThemeToggle, AutoTextarea, Loading
   lib/
     api.ts          the only place that calls the backend
     useBuilder.ts   builder state: optimistic edits, debounced autosave
     questions.ts    question type metadata and client-side validation
     logic.ts        logic jumps (mirrors backend/app/logic.py)
+    formTheme.ts    a form's colours and font, as one inline style
     types.ts        shared TypeScript types
 ```
 
@@ -119,6 +120,9 @@ Design decisions worth knowing:
 - **Dark mode is a second set of CSS variables.** Components use colour tokens (`bg-surface`,
   `text-ink`), and `<html data-theme="dark">` swaps their values. The respondent form is not
   affected: its colours come from the form's own theme.
+- **Cold starts are handled, not hidden.** The demo backend sleeps when idle. `lib/api.ts` retries
+  reads while it wakes (never writes, which could duplicate data), and the loading state says
+  what is happening after a few seconds.
 - **Validation twice.** The browser validates for fast feedback; the API re-validates every
   submission because the public endpoint can be called directly. A rejected submission returns the
   failing question ids and the runner jumps to the first one.
@@ -135,7 +139,7 @@ creators 1───* forms 1───* questions 1───* question_options
 | Table | Columns | Notes |
 | --- | --- | --- |
 | `creators` | `id`, `name`, `email` (unique) | One seeded default creator stands in for auth. |
-| `forms` | `id`, `creator_id` → creators, `title`, `slug` (unique), `status` (draft / published), `theme` (JSON), `thank_you_title`, `thank_you_message`, `view_count`, `created_at`, `updated_at`, `published_at` | `slug` is a random public id, so share links cannot be guessed from numeric ids. |
+| `forms` | `id`, `creator_id` → creators, `title`, `slug` (unique), `status` (draft / published), `theme` (JSON), `welcome_title`, `welcome_message`, `welcome_button`, `thank_you_title`, `thank_you_message`, `view_count`, `created_at`, `updated_at`, `published_at` | `slug` is a random public id, so share links cannot be guessed from numeric ids. The welcome screen is shown only when `welcome_title` is not empty. |
 | `questions` | `id`, `form_id` → forms, `type`, `title`, `description`, `required`, `position`, `settings` (JSON) | `position` gives the order. `settings` holds type-specific extras such as rating size or placeholder. |
 | `question_options` | `id`, `question_id` → questions, `label`, `position` | Choices for multiple choice and dropdown. |
 | `logic_rules` | `id`, `question_id` → questions, `operator`, `value`, `target_question_id` → questions (nullable), `position` | "If the answer to `question_id` `operator` `value`, go to `target_question_id`". A null target means the end of the form. For choice questions `value` is the option id, so renaming an option does not break the rule. |
@@ -163,6 +167,7 @@ All routes are under `/api`. Interactive docs: `http://localhost:8000/docs`.
 | POST | `/forms/{id}/publish`, `/forms/{id}/unpublish` | Toggle the public link |
 | POST | `/forms/{id}/questions` | Add a question |
 | PUT | `/forms/{id}/questions/order` | Save a new question order |
+| POST | `/questions/{id}/duplicate` | Insert a copy of a question right after it |
 | PATCH / DELETE | `/questions/{id}` | Edit (including its options and logic rules) or delete a question |
 | GET | `/forms/{id}/responses` | All responses of a form |
 | GET | `/forms/{id}/responses/export` | Responses as CSV |

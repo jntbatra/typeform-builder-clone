@@ -125,6 +125,28 @@ def test_answer_survives_deleting_the_option_that_was_picked(client):
     assert stored["answers"][0]["value"] == picked["label"]
 
 
+def test_duplicating_a_question_inserts_the_copy_right_after_it(client):
+    form, (first, choice, last) = new_form(client, "short_text", "dropdown", "email")
+    client.patch(f"/api/questions/{choice['id']}", json={"title": "Pick one", "required": True})
+
+    copy = client.post(f"/api/questions/{choice['id']}/duplicate").json()
+
+    saved = client.get(f"/api/forms/{form['id']}").json()["questions"]
+    assert [q["id"] for q in saved] == [first["id"], choice["id"], copy["id"], last["id"]]
+    assert (copy["title"], copy["required"]) == ("Pick one", True)
+    assert [o["label"] for o in copy["options"]] == [o["label"] for o in choice["options"]]
+    assert {o["id"] for o in copy["options"]}.isdisjoint(o["id"] for o in choice["options"])
+
+
+def test_welcome_screen_is_saved_and_public(client):
+    form, _ = new_form(client, "short_text")
+    client.patch(f"/api/forms/{form['id']}", json={"welcome_title": "Hello", "welcome_button": "Begin"})
+    client.post(f"/api/forms/{form['id']}/publish")
+
+    public = client.get(f"/api/public/forms/{form['slug']}").json()
+    assert (public["welcome_title"], public["welcome_button"]) == ("Hello", "Begin")
+
+
 def test_logic_jump_skips_questions_even_required_ones(client):
     form, (wants_more, details, done) = new_form(client, "yes_no", "short_text", "short_text")
     client.patch(f"/api/questions/{details['id']}", json={"required": True})

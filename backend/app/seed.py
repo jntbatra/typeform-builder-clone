@@ -143,6 +143,9 @@ def seed(db: Session) -> None:
     # Fixed slugs for the seeded forms keep the demo links stable across re-seeds.
     feedback.slug, event.slug, job.slug = "feedback", "devconf", "job-application"
     feedback.published_at = event.published_at = models.utcnow()
+    feedback.welcome_title = "We'd love your feedback"
+    feedback.welcome_message = "Eight quick questions about your experience. It takes about two minutes."
+    feedback.welcome_button = "Let's go"
     db.add_all([feedback, event, job])
     db.flush()  # assigns ids to questions and options, needed by the rules and answers below
 

@@ -77,6 +77,9 @@ class FormCreate(BaseModel):
 class FormUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     theme: dict[str, Any] | None = None
+    welcome_title: str | None = Field(default=None, max_length=200)
+    welcome_message: str | None = None
+    welcome_button: str | None = Field(default=None, max_length=40)
     thank_you_title: str | None = Field(default=None, max_length=200)
     thank_you_message: str | None = None
 
@@ -105,6 +108,9 @@ class FormOut(BaseModel):
     slug: str
     status: Literal["draft", "published"]
     theme: dict[str, Any]
+    welcome_title: str
+    welcome_message: str
+    welcome_button: str
     thank_you_title: str
     thank_you_message: str
     view_count: int
@@ -121,6 +127,9 @@ class PublicForm(BaseModel):
     title: str
     slug: str
     theme: dict[str, Any]
+    welcome_title: str
+    welcome_message: str
+    welcome_button: str
     thank_you_title: str
     thank_you_message: str
     questions: list[QuestionOut]

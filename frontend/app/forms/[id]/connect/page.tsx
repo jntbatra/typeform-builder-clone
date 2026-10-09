@@ -1,6 +1,7 @@
 "use client";
 
 import { FormHeader } from "@/components/FormHeader";
+import { Loading } from "@/components/ui/Loading";
 import { useForm } from "@/lib/useForm";
 
 const INTEGRATIONS = [
@@ -17,7 +18,7 @@ export default function ConnectPage() {
   const { form, notFound } = useForm();
 
   if (notFound) return <div className="flex min-h-screen items-center justify-center text-muted">Form not found.</div>;
-  if (!form) return <div className="flex min-h-screen items-center justify-center text-muted">Loading…</div>;
+  if (!form) return <Loading />;
 
   return (
     <div className="flex min-h-screen flex-col bg-canvas">

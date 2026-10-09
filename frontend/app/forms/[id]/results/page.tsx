@@ -6,6 +6,7 @@ import { ResponsesTable } from "@/components/results/ResponsesTable";
 import { Summary } from "@/components/results/Summary";
 import { Button } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { Loading } from "@/components/ui/Loading";
 import { api } from "@/lib/api";
 import type { FormResponse, FormStats } from "@/lib/types";
 import { useForm } from "@/lib/useForm";
@@ -30,7 +31,7 @@ export default function ResultsPage() {
   }, [formId]);
 
   if (notFound) return <div className="flex min-h-screen items-center justify-center text-muted">Form not found.</div>;
-  if (!form || !stats || !responses) return <div className="flex min-h-screen items-center justify-center text-muted">Loading…</div>;
+  if (!form || !stats || !responses) return <Loading />;
 
   const deleteResponse = async (id: number) => {
     try {

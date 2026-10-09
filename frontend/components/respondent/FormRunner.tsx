@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/api";
+import { themeStyle } from "@/lib/formTheme";
 import { nextIndex, visitedIndices } from "@/lib/logic";
 import { validateAnswer } from "@/lib/questions";
 import type { Answers, AnswerValue, FileAnswer, RunnableForm } from "@/lib/types";
@@ -18,8 +19,6 @@ interface FormRunnerProps {
   embedded?: boolean;
 }
 
-export const DEFAULT_THEME = { primary: "#0445AF", background: "#FFFFFF", text: "#000000" };
-
 /** Pause after a single-pick answer so the respondent sees their choice register before moving on. */
 const AUTO_ADVANCE_MS = 450;
 
@@ -33,13 +32,15 @@ const slide = {
 /** The one-question-at-a-time respondent experience. */
 export function FormRunner({ form, onSubmit, onUpload, embedded = false }: FormRunnerProps) {
   const { questions } = form;
-  const theme = { ...DEFAULT_THEME, ...form.theme };
 
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [answers, setAnswers] = useState<Answers>({});
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // The welcome screen is optional: it exists only when the creator gave it a title.
+  const [started, setStarted] = useState(false);
+  const showWelcome = form.welcome_title.trim() !== "" && !started;
   // A ref, not state: it must block a second submit triggered before the next render.
   const submitting = useRef(false);
 
@@ -111,6 +112,10 @@ export function FormRunner({ form, onSubmit, onUpload, embedded = false }: FormR
   // Keyboard: Enter to continue, arrows to move, and shortcut keys for single-pick answers.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (showWelcome) {
+        if (event.key === "Enter") setStarted(true);
+        return;
+      }
       if (!question || done) return;
       const target = event.target as HTMLElement;
       const typing = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
@@ -143,19 +148,13 @@ export function FormRunner({ form, onSubmit, onUpload, embedded = false }: FormR
   const restart = () => {
     setAnswers({});
     setDone(false);
+    setStarted(false);
     goTo(0);
   };
 
-  const themeVars = {
-    "--tf-primary": theme.primary,
-    "--tf-bg": theme.background,
-    "--tf-text": theme.text,
-    background: theme.background,
-    color: theme.text,
-  } as React.CSSProperties;
 
   return (
-    <div className={`${embedded ? "absolute" : "fixed"} inset-0 flex flex-col overflow-hidden`} style={themeVars}>
+    <div className={`${embedded ? "absolute" : "fixed"} inset-0 flex flex-col overflow-hidden`} style={themeStyle(form.theme)}>
       <div
         role="progressbar"
         aria-valuenow={Math.round(progress)}
@@ -170,7 +169,7 @@ export function FormRunner({ form, onSubmit, onUpload, embedded = false }: FormR
       <main className="relative flex-1">
         <AnimatePresence mode="wait" custom={direction} initial={false}>
           <motion.section
-            key={done ? "thank-you" : (question?.id ?? "empty")}
+            key={showWelcome ? "welcome" : done ? "thank-you" : (question?.id ?? "empty")}
             custom={direction}
             variants={slide}
             initial="enter"
@@ -179,7 +178,25 @@ export function FormRunner({ form, onSubmit, onUpload, embedded = false }: FormR
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
             className="absolute inset-0 flex items-center justify-center overflow-y-auto px-6 md:px-20"
           >
-            {done ? (
+            {showWelcome ? (
+              <div className="max-w-xl py-10 text-center">
+                <h1 className="text-4xl">{form.welcome_title}</h1>
+                {form.welcome_message && <p className="mt-4 text-xl opacity-70">{form.welcome_message}</p>}
+                <div className="mt-8 flex items-center justify-center gap-3">
+                  <button
+                    autoFocus
+                    onClick={() => setStarted(true)}
+                    className="rounded px-3.5 py-1.5 text-xl font-bold transition-opacity hover:opacity-80"
+                    style={{ background: "var(--tf-primary)", color: "var(--tf-bg)" }}
+                  >
+                    {form.welcome_button || "Start"}
+                  </button>
+                  <span className="text-xs">
+                    press <strong>Enter ↵</strong>
+                  </span>
+                </div>
+              </div>
+            ) : done ? (
               <div className="max-w-xl py-10 text-center">
                 <h1 className="text-4xl">{form.thank_you_title}</h1>
                 <p className="mt-4 text-xl opacity-70">{form.thank_you_message}</p>
@@ -241,11 +258,11 @@ export function FormRunner({ form, onSubmit, onUpload, embedded = false }: FormR
 
       <footer className="flex items-center justify-end gap-2 p-4">
         <div className="flex overflow-hidden rounded" style={{ background: "var(--tf-primary)", color: "var(--tf-bg)" }}>
-          <button aria-label="Previous question" disabled={previous === undefined || done} onClick={goBack} className="px-2.5 py-1.5 disabled:opacity-40">
+          <button aria-label="Previous question" disabled={previous === undefined || done || showWelcome} onClick={goBack} className="px-2.5 py-1.5 disabled:opacity-40">
             ▲
           </button>
           <span className="w-px bg-white/30" />
-          <button aria-label="Next question" disabled={isLast || done || !question} onClick={goForward} className="px-2.5 py-1.5 disabled:opacity-40">
+          <button aria-label="Next question" disabled={isLast || done || !question || showWelcome} onClick={goForward} className="px-2.5 py-1.5 disabled:opacity-40">
             ▼
           </button>
         </div>

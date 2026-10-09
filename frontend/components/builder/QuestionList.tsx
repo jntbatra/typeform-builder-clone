@@ -20,7 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 import { QUESTION_TYPE_ORDER, QUESTION_TYPES } from "@/lib/questions";
 import type { Question, QuestionType } from "@/lib/types";
-import type { Builder } from "@/lib/useBuilder";
+import type { Builder, Selection } from "@/lib/useBuilder";
 
 /** Coloured tile with the type glyph and the question number, as in Typeform's sidebar. */
 export function TypeTile({ type, number }: { type: QuestionType; number?: number }) {
@@ -41,10 +41,14 @@ interface RowProps {
   number: number;
   selected: boolean;
   onSelect: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 }
 
-function SortableRow({ question, number, selected, onSelect, onDelete }: RowProps) {
+// Row actions appear on hover or keyboard focus.
+const ROW_ACTION = "rounded px-1 text-muted opacity-0 hover:bg-subtle-strong hover:text-ink focus:opacity-100 group-hover:opacity-100";
+
+function SortableRow({ question, number, selected, onSelect, onDuplicate, onDelete }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: question.id });
 
   return (
@@ -67,14 +71,27 @@ function SortableRow({ question, number, selected, onSelect, onDelete }: RowProp
         </span>
       )}
       <button
+        aria-label={`Duplicate question ${number}`}
+        title="Duplicate"
+        onClick={(event) => {
+          event.stopPropagation();
+          onDuplicate();
+        }}
+        // Stop the press from starting a drag.
+        onPointerDown={(event) => event.stopPropagation()}
+        className={ROW_ACTION}
+      >
+        ⧉
+      </button>
+      <button
         aria-label={`Delete question ${number}`}
+        title="Delete"
         onClick={(event) => {
           event.stopPropagation();
           onDelete();
         }}
-        // Stop the press from starting a drag.
         onPointerDown={(event) => event.stopPropagation()}
-        className="rounded px-1 text-muted opacity-0 hover:bg-subtle-strong hover:text-ink focus:opacity-100 group-hover:opacity-100"
+        className={ROW_ACTION}
       >
         ✕
       </button>
@@ -130,7 +147,7 @@ interface QuestionListProps {
 
 export function QuestionList({ builder, className = "flex", onNavigate }: QuestionListProps) {
   const { form, selectedId } = builder;
-  const select = (id: number | "ending") => {
+  const select = (id: Selection) => {
     builder.setSelectedId(id);
     onNavigate?.();
   };
@@ -157,6 +174,15 @@ export function QuestionList({ builder, className = "flex", onNavigate }: Questi
         <AddQuestionMenu onAdd={add} />
       </div>
       <div className="flex-1 overflow-y-auto px-2">
+        <button
+          onClick={() => select("welcome")}
+          className={`mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm ${
+            selectedId === "welcome" ? "bg-subtle-strong" : "hover:bg-subtle"
+          }`}
+        >
+          <span className="flex h-6 w-12 shrink-0 items-center justify-center rounded bg-subtle-strong text-xs">👋</span>
+          <span className={`truncate ${form.welcome_title ? "" : "text-muted"}`}>{form.welcome_title || "Welcome screen (off)"}</span>
+        </button>
         {form.questions.length === 0 && (
           <p className="px-2 py-6 text-center text-sm text-muted">No questions yet. Add your first one above.</p>
         )}
@@ -170,6 +196,7 @@ export function QuestionList({ builder, className = "flex", onNavigate }: Questi
                   number={index + 1}
                   selected={selectedId === question.id}
                   onSelect={() => select(question.id)}
+                  onDuplicate={() => builder.duplicateQuestion(question.id)}
                   onDelete={() => builder.deleteQuestion(question.id)}
                 />
               ))}

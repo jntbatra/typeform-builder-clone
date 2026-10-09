@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { AnswerInput } from "@/components/respondent/AnswerInput";
-import { DEFAULT_THEME } from "@/components/respondent/FormRunner";
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
+import { themeStyle } from "@/lib/formTheme";
 import { isChoiceType } from "@/lib/questions";
 import type { Question } from "@/lib/types";
 import { type Builder, type QuestionEdit, tempOptionId } from "@/lib/useBuilder";
@@ -77,25 +77,43 @@ function ChoiceEditor({ question, onChange }: ChoiceEditorProps) {
 export function QuestionCanvas({ builder, className = "flex" }: { builder: Builder; className?: string }) {
   const { form, selectedId } = builder;
   if (!form) return null;
-  const theme = { ...DEFAULT_THEME, ...form.theme };
   const index = form.questions.findIndex((q) => q.id === selectedId);
   const question = form.questions[index];
 
-  const themeVars = {
-    "--tf-primary": theme.primary,
-    "--tf-bg": theme.background,
-    "--tf-text": theme.text,
-    background: theme.background,
-    color: theme.text,
-  } as React.CSSProperties;
 
   return (
     <section className={`min-w-0 flex-1 items-center justify-center overflow-auto bg-canvas p-3 md:p-8 ${className}`}>
       <div
         className="flex min-h-[60vh] w-full max-w-4xl items-center justify-center overflow-y-auto rounded-xl px-5 shadow-sm ring-1 ring-line md:aspect-[16/10] md:min-h-0 md:px-20"
-        style={themeVars}
+        style={themeStyle(form.theme)}
       >
-        {selectedId === "ending" ? (
+        {selectedId === "welcome" ? (
+          <div className="w-full max-w-xl py-10 text-center">
+            <AutoTextarea
+              aria-label="Welcome title"
+              value={form.welcome_title}
+              placeholder="Add a title to turn the welcome screen on"
+              onChange={(event) => builder.updateForm({ welcome_title: event.target.value })}
+              className={`${INLINE_FIELD} text-center text-4xl`}
+            />
+            <AutoTextarea
+              aria-label="Welcome message"
+              value={form.welcome_message}
+              placeholder="Add a description (optional)"
+              onChange={(event) => builder.updateForm({ welcome_message: event.target.value })}
+              className={`${INLINE_FIELD} mt-4 text-center text-xl opacity-70`}
+            />
+            <input
+              aria-label="Welcome button text"
+              value={form.welcome_button}
+              placeholder="Start"
+              maxLength={40}
+              onChange={(event) => builder.updateForm({ welcome_button: event.target.value })}
+              className="mt-8 w-40 rounded px-3.5 py-1.5 text-center text-xl font-bold outline-none"
+              style={{ background: "var(--tf-primary)", color: "var(--tf-bg)" }}
+            />
+          </div>
+        ) : selectedId === "ending" ? (
           <div className="w-full max-w-xl py-10 text-center">
             <AutoTextarea
               aria-label="Thank you title"

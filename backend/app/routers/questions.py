@@ -113,6 +113,27 @@ def update_question(
     return question
 
 
+@router.post("/questions/{question_id}/duplicate", response_model=schemas.QuestionOut, status_code=201)
+def duplicate_question(question: models.Question = Depends(get_owned_question), db: Session = Depends(get_db)):
+    """Insert a copy right after the original. Logic rules are not copied: they belong to one place in the flow."""
+    form = question.form
+    copy = models.Question(
+        type=question.type,
+        title=question.title,
+        description=question.description,
+        required=question.required,
+        settings=dict(question.settings),
+        options=[models.QuestionOption(label=o.label, position=o.position) for o in question.options],
+    )
+    ordered = list(form.questions)
+    ordered.insert(ordered.index(question) + 1, copy)
+    form.questions = ordered
+    renumber(ordered)
+    form.updated_at = models.utcnow()
+    db.commit()
+    return copy
+
+
 @router.delete("/questions/{question_id}", status_code=204)
 def delete_question(question: models.Question = Depends(get_owned_question), db: Session = Depends(get_db)):
     form = question.form

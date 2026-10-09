@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { DEFAULT_THEME } from "@/components/respondent/FormRunner";
 import { Toggle } from "@/components/ui/Toggle";
 import { LogicEditor } from "./LogicEditor";
+import { DEFAULT_THEME, type FontKey, FONTS } from "@/lib/formTheme";
 import { QUESTION_TYPE_ORDER, QUESTION_TYPES } from "@/lib/questions";
 import type { QuestionType, Theme } from "@/lib/types";
 import type { Builder } from "@/lib/useBuilder";
 
-const THEME_PRESETS: { name: string; theme: Required<Theme> }[] = [
-  { name: "Default", theme: DEFAULT_THEME },
+/** A preset sets the three colours and leaves the chosen font alone. */
+const THEME_PRESETS: { name: string; theme: Pick<Required<Theme>, "primary" | "background" | "text"> }[] = [
+  { name: "Default", theme: { primary: DEFAULT_THEME.primary, background: DEFAULT_THEME.background, text: DEFAULT_THEME.text } },
   { name: "Midnight", theme: { primary: "#F2C94C", background: "#17202E", text: "#FFFFFF" } },
   { name: "Forest", theme: { primary: "#1F6F54", background: "#F3F0E7", text: "#1B2B24" } },
   { name: "Plum", theme: { primary: "#7B2D8E", background: "#FBF4FF", text: "#2A1433" } },
@@ -56,7 +57,9 @@ export function SettingsPanel({ builder, className = "flex" }: { builder: Builde
       <div className="flex-1 overflow-y-auto p-4">
         {tab === "Question" && !question && (
           <p className="text-sm text-muted">
-            {selectedId === "ending"
+            {selectedId === "welcome"
+              ? "Type a title on the canvas to show a welcome screen before the first question. Clear it to turn the screen off."
+              : selectedId === "ending"
               ? "Edit the thank-you title and message directly on the canvas."
               : "Select a question to edit its settings."}
           </p>
@@ -132,7 +135,7 @@ export function SettingsPanel({ builder, className = "flex" }: { builder: Builde
                 return (
                   <button
                     key={preset.name}
-                    onClick={() => builder.updateForm({ theme: preset.theme })}
+                    onClick={() => builder.updateForm({ theme: { ...preset.theme, font: theme.font } })}
                     className={`rounded-lg border p-2 text-left text-xs ${active ? "border-ink ring-1 ring-ink" : "border-line hover:border-muted"}`}
                   >
                     <span
@@ -148,7 +151,21 @@ export function SettingsPanel({ builder, className = "flex" }: { builder: Builde
               })}
             </div>
             <div className="flex flex-col gap-2 border-t border-line pt-4 text-sm">
-              <p className="font-medium">Custom colours</p>
+              <label>
+                <span className="mb-1.5 block font-medium">Font</span>
+                <select
+                  value={theme.font}
+                  onChange={(event) => builder.updateForm({ theme: { ...theme, font: event.target.value as FontKey } })}
+                  className={FIELD}
+                >
+                  {(Object.keys(FONTS) as FontKey[]).map((key) => (
+                    <option key={key} value={key}>
+                      {FONTS[key].label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="mt-2 font-medium">Custom colours</p>
               {(["primary", "background", "text"] as const).map((key) => (
                 <label key={key} className="flex items-center justify-between capitalize">
                   {key === "primary" ? "Answers and buttons" : key === "text" ? "Questions" : "Background"}

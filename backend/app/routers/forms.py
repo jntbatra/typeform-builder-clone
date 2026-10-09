@@ -96,6 +96,9 @@ def duplicate_form(form: models.Form = Depends(get_owned_form), db: Session = De
         title=f"{form.title} (copy)",
         slug=new_slug(),
         theme=dict(form.theme),
+        welcome_title=form.welcome_title,
+        welcome_message=form.welcome_message,
+        welcome_button=form.welcome_button,
         thank_you_title=form.thank_you_title,
         thank_you_message=form.thank_you_message,
     )
