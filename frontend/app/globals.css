@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #262627;
+  --color-muted: #737373;
+  --color-line: #e3e3e3;
+  --color-canvas: #f7f7f6;
+}
+
+body {
+  background: #ffffff;
+  color: #262627;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Respondent form: every colour derives from three theme variables set on the runner. */
+.tf-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--tf-primary);
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+  padding: 0 0 8px;
+  box-shadow: color-mix(in srgb, var(--tf-primary) 30%, transparent) 0 1px;
+  transition: box-shadow 0.15s ease;
+  resize: none;
+}
+.tf-input::placeholder {
+  color: color-mix(in srgb, var(--tf-primary) 30%, transparent);
+}
+.tf-input:focus {
+  box-shadow: var(--tf-primary) 0 2px;
+}
+
+.tf-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 6px;
+  color: var(--tf-primary);
+  font-size: 1.25rem;
+  text-align: left;
+  background: color-mix(in srgb, var(--tf-primary) 10%, transparent);
+  box-shadow: color-mix(in srgb, var(--tf-primary) 60%, transparent) 0 0 0 1px inset;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+}
+.tf-choice:hover {
+  background: color-mix(in srgb, var(--tf-primary) 22%, transparent);
+}
+.tf-choice[data-selected="true"] {
+  box-shadow: var(--tf-primary) 0 0 0 2px inset;
+}
+.tf-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--tf-bg);
+  border: 1px solid color-mix(in srgb, var(--tf-primary) 60%, transparent);
+}
+.tf-choice[data-selected="true"] .tf-key {
+  background: var(--tf-primary);
+  color: var(--tf-bg);
+}
