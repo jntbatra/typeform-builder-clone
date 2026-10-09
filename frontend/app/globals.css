@@ -43,18 +43,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Builder question list: a row's duplicate / delete buttons take no room until the row is
-   hovered or focused. Phones have no hover and a full-width list, so there they always show. */
-@media (min-width: 768px) {
-  .row-action {
-    display: none;
-  }
-  .question-row:hover .row-action,
-  .question-row:focus-within .row-action {
-    display: block;
-  }
-}
-
 /* Respondent form: every colour derives from three theme variables set on the runner. */
 .tf-input {
   width: 100%;

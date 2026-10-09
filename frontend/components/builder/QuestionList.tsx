@@ -45,9 +45,11 @@ interface RowProps {
   onDelete: () => void;
 }
 
-// .row-action (globals.css): takes no room until its .question-row is hovered or focused,
-// so titles get the full width. Always shown on phones, which have no hover.
-const ROW_ACTION = "row-action rounded px-1 text-muted hover:bg-subtle-strong hover:text-ink";
+// Row actions take no room until their row (.question-row) is hovered or focused, so titles
+// get the full width. One "hidden unless..." rule rather than a hide rule plus a show rule,
+// so nothing depends on the order of two utilities. Phones have no hover: always shown there.
+const ROW_ACTION =
+  "rounded px-1 text-muted hover:bg-subtle-strong hover:text-ink md:[.question-row:not(:hover):not(:focus-within)_&]:hidden";
 
 function SortableRow({ question, number, selected, onSelect, onDuplicate, onDelete }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: question.id });
