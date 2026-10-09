@@ -1,7 +1,9 @@
 """ORM models.
 
 creators 1─* forms 1─* questions 1─* question_options
+                              │    1─* logic_rules *─1 questions (jump target)
                   1─* responses 1─* answers *─1 questions
+                                    answers 1─0..1 uploads
 """
 
 from datetime import datetime, timezone
@@ -9,6 +11,7 @@ from datetime import datetime, timezone
 from sqlalchemy import (
     JSON,
     Boolean,
+    LargeBinary,
     DateTime,
     Float,
     ForeignKey,
@@ -30,8 +33,11 @@ QUESTION_TYPES = (
     "number",
     "yes_no",
     "rating",
+    "file_upload",
 )
 CHOICE_TYPES = ("multiple_choice", "dropdown")
+NUMERIC_TYPES = ("number", "rating")
+LOGIC_OPERATORS = ("equals", "not_equals", "contains", "greater_than", "less_than")
 
 
 def utcnow() -> datetime:
@@ -91,6 +97,33 @@ class Question(Base):
         back_populates="question", cascade="all, delete-orphan", order_by="QuestionOption.position"
     )
     answers: Mapped[list["Answer"]] = relationship(back_populates="question", cascade="all, delete-orphan")
+    # Jumps leaving this question, checked in order; the first rule that matches wins.
+    logic_rules: Mapped[list["LogicRule"]] = relationship(
+        back_populates="question",
+        cascade="all, delete-orphan",
+        order_by="LogicRule.position",
+        foreign_keys="LogicRule.question_id",
+    )
+
+
+class LogicRule(Base):
+    """ "If the answer to `question` <operator> <value>, go to `target_question`"."""
+
+    __tablename__ = "logic_rules"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id", ondelete="CASCADE"), index=True)
+    operator: Mapped[str] = mapped_column(String(16))
+    # What the answer is compared with: text, a number, "yes"/"no", or an option id for choices
+    # (an id rather than a label, so renaming an option does not break the rule).
+    value: Mapped[str] = mapped_column(String(255), default="")
+    # NULL means "skip to the end of the form". CASCADE drops the rule if its target is deleted.
+    target_question_id: Mapped[int | None] = mapped_column(
+        ForeignKey("questions.id", ondelete="CASCADE"), nullable=True
+    )
+    position: Mapped[int] = mapped_column(Integer, default=0)
+
+    question: Mapped[Question] = relationship(back_populates="logic_rules", foreign_keys=[question_id])
 
 
 class QuestionOption(Base):
@@ -133,3 +166,26 @@ class Answer(Base):
 
     response: Mapped[Response] = relationship(back_populates="answers")
     question: Mapped[Question] = relationship(back_populates="answers")
+    # Set for file-upload answers; value_text then holds the file name.
+    upload: Mapped["Upload | None"] = relationship(back_populates="answer", cascade="all, delete-orphan")
+
+
+class Upload(Base):
+    """A file sent for a file-upload question. Stored in the database so it lives with the answer."""
+
+    __tablename__ = "uploads"
+
+    # Random token: the respondent gets it back after uploading and submits it as the answer.
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id", ondelete="CASCADE"), index=True)
+    # NULL until the response is submitted; then the file is deleted together with its answer.
+    answer_id: Mapped[int | None] = mapped_column(
+        ForeignKey("answers.id", ondelete="CASCADE"), nullable=True, unique=True
+    )
+    filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(120))
+    size: Mapped[int] = mapped_column(Integer)
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    answer: Mapped[Answer | None] = relationship(back_populates="upload")

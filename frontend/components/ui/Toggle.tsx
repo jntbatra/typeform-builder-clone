@@ -16,10 +16,10 @@ export function Toggle({ checked, onChange, label }: ToggleProps) {
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={`relative h-5 w-9 rounded-full transition-colors ${checked ? "bg-ink" : "bg-neutral-300"}`}
+        className={`relative h-5 w-9 rounded-full transition-colors ${checked ? "bg-ink" : "bg-subtle-strong"}`}
       >
         <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${checked ? "left-[18px]" : "left-0.5"}`}
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-surface transition-all ${checked ? "left-[18px]" : "left-0.5"}`}
         />
       </button>
     </label>

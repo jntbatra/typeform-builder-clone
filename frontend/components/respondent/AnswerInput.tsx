@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { QUESTION_TYPES } from "@/lib/questions";
-import type { AnswerValue, Question } from "@/lib/types";
+import type { AnswerValue, FileAnswer, Question } from "@/lib/types";
 
 interface AnswerInputProps {
   question: Question;
@@ -11,14 +11,18 @@ interface AnswerInputProps {
   onChange: (value: AnswerValue) => void;
   /** Called when the answer is a single pick (choice, yes/no, rating), so the form can move on. */
   onPick: (value: AnswerValue) => void;
+  /** Send a picked file to the server. Only needed where file-upload questions can be answered. */
+  onUpload?: (file: File) => Promise<FileAnswer>;
   /** Builder canvas: show the control but do not let it take focus or input. */
   readOnly?: boolean;
 }
 
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
 const letter = (index: number) => String.fromCharCode(65 + index);
 
 /** The answer control for one question, switched on its type. */
-export function AnswerInput({ question, value, onChange, onPick, readOnly = false }: AnswerInputProps) {
+export function AnswerInput({ question, value, onChange, onPick, onUpload, readOnly = false }: AnswerInputProps) {
   const meta = QUESTION_TYPES[question.type];
   const placeholder = question.settings.placeholder || meta.placeholder;
   const common = { readOnly, tabIndex: readOnly ? -1 : 0, autoFocus: !readOnly, placeholder };
@@ -122,7 +126,81 @@ export function AnswerInput({ question, value, onChange, onPick, readOnly = fals
 
     case "dropdown":
       return <Dropdown question={question} value={value} onPick={onPick} readOnly={readOnly} placeholder={placeholder} />;
+
+    case "file_upload":
+      return <FileUpload value={value} onChange={onChange} onUpload={onUpload} readOnly={readOnly} />;
   }
+}
+
+type FileUploadProps = Pick<AnswerInputProps, "value" | "onChange" | "onUpload" | "readOnly">;
+
+/** Click-or-drop zone. The file is uploaded as soon as it is picked; the answer is its upload id. */
+function FileUpload({ value, onChange, onUpload, readOnly }: FileUploadProps) {
+  const picker = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const uploaded = typeof value === "object" && value !== null ? value : null;
+
+  const send = async (file: File | undefined) => {
+    if (!file || !onUpload) return;
+    if (file.size > MAX_UPLOAD_BYTES) return setError("Files can be up to 5 MB");
+    setBusy(true);
+    setError(null);
+    try {
+      onChange(await onUpload(file));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The upload failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="max-w-xl">
+      <button
+        type="button"
+        tabIndex={readOnly ? -1 : 0}
+        disabled={busy}
+        onClick={() => !readOnly && picker.current?.click()}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => {
+          event.preventDefault();
+          if (!readOnly) void send(event.dataTransfer.files[0]);
+        }}
+        className="flex min-h-36 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center"
+        style={{
+          color: "var(--tf-primary)",
+          borderColor: "color-mix(in srgb, var(--tf-primary) 60%, transparent)",
+          background: "color-mix(in srgb, var(--tf-primary) 8%, transparent)",
+        }}
+      >
+        {busy ? (
+          <span>Uploading…</span>
+        ) : uploaded ? (
+          <>
+            <span className="text-lg">✓ {uploaded.filename}</span>
+            <span className="text-xs underline">Choose a different file</span>
+          </>
+        ) : (
+          <>
+            <span className="text-2xl" aria-hidden>
+              ⇪
+            </span>
+            <span>
+              <strong>Choose file</strong> or <strong>drag here</strong>
+            </span>
+            <span className="text-xs">Size limit: 5 MB</span>
+          </>
+        )}
+      </button>
+      <input ref={picker} type="file" hidden onChange={(event) => send(event.target.files?.[0])} />
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-[#af0404]">
+          {error}
+        </p>
+      )}
+    </div>
+  );
 }
 
 interface DropdownProps extends Pick<AnswerInputProps, "question" | "value" | "onPick" | "readOnly"> {

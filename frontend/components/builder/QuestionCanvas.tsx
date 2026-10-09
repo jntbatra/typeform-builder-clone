@@ -92,7 +92,7 @@ export function QuestionCanvas({ builder, className = "flex" }: { builder: Build
   return (
     <section className={`min-w-0 flex-1 items-center justify-center overflow-auto bg-canvas p-3 md:p-8 ${className}`}>
       <div
-        className="flex min-h-[60vh] w-full max-w-4xl items-center justify-center overflow-y-auto rounded-xl px-5 shadow-sm ring-1 ring-black/5 md:aspect-[16/10] md:min-h-0 md:px-20"
+        className="flex min-h-[60vh] w-full max-w-4xl items-center justify-center overflow-y-auto rounded-xl px-5 shadow-sm ring-1 ring-line md:aspect-[16/10] md:min-h-0 md:px-20"
         style={themeVars}
       >
         {selectedId === "ending" ? (

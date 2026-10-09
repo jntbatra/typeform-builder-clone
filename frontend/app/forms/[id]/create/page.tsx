@@ -53,12 +53,12 @@ export default function CreatePage() {
         <Button onClick={togglePublish}>{published ? "Unpublish" : "Publish"}</Button>
       </FormHeader>
 
-      <div className="flex gap-1 border-b border-line bg-white p-1.5 md:hidden">
+      <div className="flex gap-1 border-b border-line bg-surface p-1.5 md:hidden">
         {PANELS.map((name) => (
           <button
             key={name}
             onClick={() => setPanel(name)}
-            className={`h-8 flex-1 rounded-md text-sm ${panel === name ? "bg-neutral-200/70 font-medium" : "text-muted"}`}
+            className={`h-8 flex-1 rounded-md text-sm ${panel === name ? "bg-subtle-strong font-medium" : "text-muted"}`}
           >
             {name}
           </button>
@@ -73,7 +73,7 @@ export default function CreatePage() {
       </div>
 
       {previewing && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+        <div className="fixed inset-0 z-50 flex flex-col bg-surface">
           <div className="flex h-12 shrink-0 items-center justify-between border-b border-line px-4 text-sm">
             <span>
               <strong>Preview</strong> <span className="text-muted">· answers here are not saved</span>
@@ -84,7 +84,13 @@ export default function CreatePage() {
           </div>
           <div className="relative flex-1">
             {/* The same component respondents get, fed the unsaved builder state. */}
-            <FormRunner form={form} embedded onSubmit={async () => {}} />
+            <FormRunner
+              form={form}
+              embedded
+              onSubmit={async () => {}}
+              // Nothing is sent in preview: pretend the upload worked so the flow can be tried.
+              onUpload={async (_questionId, file) => ({ upload_id: "preview", filename: file.name })}
+            />
           </div>
         </div>
       )}

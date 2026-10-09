@@ -21,10 +21,10 @@ export function Modal({ title, onClose, children }: ModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
-      <div role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-md rounded-xl bg-surface p-6 shadow-2xl">
         <div className="mb-4 flex items-start justify-between">
           <h2 className="text-xl font-medium">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="-mr-1 -mt-1 rounded p-1 text-muted hover:bg-neutral-100">
+          <button onClick={onClose} aria-label="Close" className="-mr-1 -mt-1 rounded p-1 text-muted hover:bg-subtle">
             ✕
           </button>
         </div>
@@ -35,8 +35,8 @@ export function Modal({ title, onClose, children }: ModalProps) {
 }
 
 const BUTTON_STYLES = {
-  primary: "bg-ink text-white hover:bg-black",
-  secondary: "bg-neutral-100 text-ink hover:bg-neutral-200",
+  primary: "bg-ink text-surface hover:opacity-90",
+  secondary: "bg-subtle text-ink hover:bg-subtle-strong",
   danger: "bg-red-700 text-white hover:bg-red-800",
 };
 

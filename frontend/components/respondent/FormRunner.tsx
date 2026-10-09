@@ -3,14 +3,17 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/api";
+import { nextIndex, visitedIndices } from "@/lib/logic";
 import { validateAnswer } from "@/lib/questions";
-import type { Answers, AnswerValue, RunnableForm } from "@/lib/types";
+import type { Answers, AnswerValue, FileAnswer, RunnableForm } from "@/lib/types";
 import { AnswerInput } from "./AnswerInput";
 
 interface FormRunnerProps {
   form: RunnableForm;
   /** Persist the answers. Throw an ApiError carrying per-question errors to send the respondent back. */
   onSubmit: (answers: Answers) => Promise<void>;
+  /** Send the file picked for a file-upload question and return what to keep as the answer. */
+  onUpload: (questionId: number, file: File) => Promise<FileAnswer>;
   /** Fill the parent element instead of the whole window (builder preview). */
   embedded?: boolean;
 }
@@ -28,7 +31,7 @@ const slide = {
 };
 
 /** The one-question-at-a-time respondent experience. */
-export function FormRunner({ form, onSubmit, embedded = false }: FormRunnerProps) {
+export function FormRunner({ form, onSubmit, onUpload, embedded = false }: FormRunnerProps) {
   const { questions } = form;
   const theme = { ...DEFAULT_THEME, ...form.theme };
 
@@ -41,9 +44,13 @@ export function FormRunner({ form, onSubmit, embedded = false }: FormRunnerProps
   const submitting = useRef(false);
 
   const question = questions[index];
-  const isLast = index === questions.length - 1;
-  const answeredCount = questions.filter((q) => validateAnswer({ ...q, required: true }, answers[q.id]) === null).length;
-  const progress = done ? 100 : questions.length ? (answeredCount / questions.length) * 100 : 0;
+  // Logic jumps decide what comes next, so "next" and "previous" are read off the
+  // respondent's path through the form rather than index + 1 and index - 1.
+  const following = question ? nextIndex(questions, index, answers) : null;
+  const isLast = following === null;
+  const path = visitedIndices(questions, answers);
+  const previous = path[path.indexOf(index) - 1];
+  const progress = done ? 100 : questions.length ? (index / questions.length) * 100 : 0;
 
   const goTo = (target: number, message: string | null = null) => {
     setDirection(target >= index ? 1 : -1);
@@ -52,9 +59,9 @@ export function FormRunner({ form, onSubmit, embedded = false }: FormRunnerProps
   };
 
   const submit = async (current: Answers) => {
-    // The respondent may have skipped ahead with the arrows, so re-check every question.
-    const firstInvalid = questions.findIndex((q) => validateAnswer(q, current[q.id]));
-    if (firstInvalid !== -1) {
+    // Re-check every question on the path, in case an earlier answer was cleared since.
+    const firstInvalid = visitedIndices(questions, current).find((i) => validateAnswer(questions[i], current[questions[i].id]));
+    if (firstInvalid !== undefined) {
       return goTo(firstInvalid, validateAnswer(questions[firstInvalid], current[questions[firstInvalid].id]));
     }
     if (submitting.current) return;
@@ -79,11 +86,13 @@ export function FormRunner({ form, onSubmit, embedded = false }: FormRunnerProps
     if (!question || done) return;
     const problem = validateAnswer(question, current[question.id]);
     if (problem) return setError(problem);
-    if (isLast) void submit(current);
-    else goTo(index + 1);
+    // Recomputed here because `current` may be newer than the answers of this render.
+    const next = nextIndex(questions, index, current);
+    if (next === null) void submit(current);
+    else goTo(next);
   };
 
-  const goBack = () => index > 0 && !done && goTo(index - 1);
+  const goBack = () => previous !== undefined && !done && goTo(previous);
   const goForward = () => !isLast && advance();
 
   const setAnswer = (value: AnswerValue) => {
@@ -195,7 +204,13 @@ export function FormRunner({ form, onSubmit, embedded = false }: FormRunnerProps
                     {question.description && <p className="mt-2 text-xl opacity-70">{question.description}</p>}
 
                     <div className="mt-8">
-                      <AnswerInput question={question} value={answers[question.id]} onChange={setAnswer} onPick={pick} />
+                      <AnswerInput
+                        question={question}
+                        value={answers[question.id]}
+                        onChange={setAnswer}
+                        onPick={pick}
+                        onUpload={(file) => onUpload(question.id, file)}
+                      />
                     </div>
 
                     {error ? (
@@ -226,7 +241,7 @@ export function FormRunner({ form, onSubmit, embedded = false }: FormRunnerProps
 
       <footer className="flex items-center justify-end gap-2 p-4">
         <div className="flex overflow-hidden rounded" style={{ background: "var(--tf-primary)", color: "var(--tf-bg)" }}>
-          <button aria-label="Previous question" disabled={index === 0 || done} onClick={goBack} className="px-2.5 py-1.5 disabled:opacity-40">
+          <button aria-label="Previous question" disabled={previous === undefined || done} onClick={goBack} className="px-2.5 py-1.5 disabled:opacity-40">
             ▲
           </button>
           <span className="w-px bg-white/30" />

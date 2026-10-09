@@ -7,7 +7,8 @@ so the same rules are enforced here before anything is stored.
 import re
 from dataclasses import dataclass
 
-from .models import CHOICE_TYPES, Question
+from .logic import is_blank, visited_questions
+from .models import CHOICE_TYPES, Question, Upload
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 MAX_TEXT_LENGTH = 5000
@@ -21,13 +22,10 @@ class CleanAnswer:
     value_text: str
     value_number: float | None = None
     option_id: int | None = None
+    upload: Upload | None = None
 
 
-def is_blank(value) -> bool:
-    return value is None or (isinstance(value, str) and value.strip() == "")
-
-
-def clean_answer(question: Question, value) -> CleanAnswer | None:
+def clean_answer(question: Question, value, uploads: dict[str, Upload]) -> CleanAnswer | None:
     """Return the normalised answer, None if it was skipped; raise ValueError if invalid."""
     if is_blank(value):
         if question.required:
@@ -72,16 +70,29 @@ def clean_answer(question: Question, value) -> CleanAnswer | None:
             raise ValueError("Choose one of the options")
         return CleanAnswer(question.id, option.label, option_id=option.id)
 
+    if qtype == "file_upload":
+        # The file was sent earlier; the answer is the id that upload returned.
+        upload = uploads.get(value) if isinstance(value, str) else None
+        if upload is None or upload.question_id != question.id or upload.answer_id is not None:
+            raise ValueError("Upload the file again")
+        return CleanAnswer(question.id, upload.filename, upload=upload)
+
     raise ValueError("Unsupported question type")
 
 
-def clean_response(questions: list[Question], submitted: dict[int, object]) -> tuple[list[CleanAnswer], dict[int, str]]:
-    """Validate every question of a form. Returns (clean answers, errors by question id)."""
+def clean_response(
+    questions: list[Question], submitted: dict[int, object], uploads: dict[str, Upload]
+) -> tuple[list[CleanAnswer], dict[int, str]]:
+    """Validate a submission. Returns (clean answers, errors by question id).
+
+    Only the questions on the respondent's path through the logic jumps are checked and kept.
+    `uploads` maps upload id to the pending uploads of this form.
+    """
     answers: list[CleanAnswer] = []
     errors: dict[int, str] = {}
-    for question in questions:
+    for question in visited_questions(questions, submitted):
         try:
-            answer = clean_answer(question, submitted.get(question.id))
+            answer = clean_answer(question, submitted.get(question.id), uploads)
         except ValueError as exc:
             errors[question.id] = str(exc)
             continue

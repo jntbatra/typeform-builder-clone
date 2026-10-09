@@ -8,7 +8,21 @@ export type QuestionType =
   | "email"
   | "number"
   | "yes_no"
-  | "rating";
+  | "rating"
+  | "file_upload";
+
+export type LogicOperator = "equals" | "not_equals" | "contains" | "greater_than" | "less_than";
+
+/** "If the answer <operator> <value>, go to <target>". */
+export interface LogicRule {
+  /** Absent on rules added in the builder that have not been saved yet. */
+  id?: number;
+  operator: LogicOperator;
+  /** Text, a number, "yes"/"no", or an option id (as text) for choice questions. */
+  value: string;
+  /** null = jump to the end of the form. */
+  target_question_id: number | null;
+}
 
 export interface Option {
   // Options created in the builder but not saved yet carry a negative temporary id.
@@ -26,6 +40,7 @@ export interface Question {
   position: number;
   settings: { max?: number; placeholder?: string };
   options: Option[];
+  logic_rules: LogicRule[];
 }
 
 export interface Theme {
@@ -67,8 +82,14 @@ export interface Form extends RunnableForm {
   published_at: string | null;
 }
 
+/** A file that has been uploaded for a file-upload question. */
+export interface FileAnswer {
+  upload_id: string;
+  filename: string;
+}
+
 /** text for text/email/number, option id for choices, boolean for yes/no, number for rating. */
-export type AnswerValue = string | number | boolean | null | undefined;
+export type AnswerValue = string | number | boolean | FileAnswer | null | undefined;
 export type Answers = Record<number, AnswerValue>;
 
 export interface ResponseAnswer {
@@ -76,6 +97,8 @@ export interface ResponseAnswer {
   question_title: string;
   question_type: QuestionType;
   value: string;
+  /** Download link, for file-upload answers. */
+  file_url: string | null;
 }
 
 export interface FormResponse {

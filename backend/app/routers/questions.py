@@ -56,6 +56,13 @@ def reorder_questions(
         raise HTTPException(400, "question_ids must contain each question of the form exactly once")
     ordered = [by_id[qid] for qid in payload.question_ids]
     renumber(ordered)
+    # Jumps only go forward, so drop any rule whose target is no longer after its question.
+    for question in ordered:
+        question.logic_rules = [
+            rule
+            for rule in question.logic_rules
+            if rule.target_question_id is None or by_id[rule.target_question_id].position > question.position
+        ]
     form.updated_at = models.utcnow()
     db.commit()
     return ordered
@@ -67,9 +74,25 @@ def update_question(
     question: models.Question = Depends(get_owned_question),
     db: Session = Depends(get_db),
 ):
-    data = payload.model_dump(exclude_unset=True, exclude={"options"})
+    data = payload.model_dump(exclude_unset=True, exclude={"options", "logic_rules"})
+    if "type" in data and data["type"] != question.type:
+        # Rules are written for one answer type; they make no sense for another.
+        question.logic_rules = []
     for field, value in data.items():
         setattr(question, field, value)
+
+    if payload.logic_rules is not None:
+        # A rule may only jump forward, to a later question of the same form (or to the end).
+        later = {q.id for q in question.form.questions if q.position > question.position}
+        for rule in payload.logic_rules:
+            if rule.target_question_id is not None and rule.target_question_id not in later:
+                raise HTTPException(400, "A jump must go to a later question of the same form")
+        question.logic_rules = [
+            models.LogicRule(
+                operator=rule.operator, value=rule.value, target_question_id=rule.target_question_id, position=i
+            )
+            for i, rule in enumerate(payload.logic_rules)
+        ]
 
     if payload.options is not None and question.type in models.CHOICE_TYPES:
         # Sync by id so existing options keep their id (and the answers pointing at them).

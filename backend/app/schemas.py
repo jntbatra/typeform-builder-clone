@@ -6,8 +6,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 QuestionType = Literal[
-    "short_text", "long_text", "multiple_choice", "dropdown", "email", "number", "yes_no", "rating"
+    "short_text", "long_text", "multiple_choice", "dropdown", "email", "number", "yes_no", "rating", "file_upload"
 ]
+LogicOperator = Literal["equals", "not_equals", "contains", "greater_than", "less_than"]
 
 
 class OptionOut(BaseModel):
@@ -23,6 +24,18 @@ class OptionIn(BaseModel):
     label: str = Field(min_length=1, max_length=255)
 
 
+class LogicRuleIn(BaseModel):
+    operator: LogicOperator
+    value: str = Field(default="", max_length=255)
+    # None = jump to the end of the form.
+    target_question_id: int | None = None
+
+
+class LogicRuleOut(LogicRuleIn):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
 class QuestionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -33,6 +46,7 @@ class QuestionOut(BaseModel):
     position: int
     settings: dict[str, Any]
     options: list[OptionOut]
+    logic_rules: list[LogicRuleOut]
 
 
 class QuestionCreate(BaseModel):
@@ -48,6 +62,8 @@ class QuestionUpdate(BaseModel):
     required: bool | None = None
     settings: dict[str, Any] | None = None
     options: list[OptionIn] | None = None
+    # Replaces every jump rule of the question.
+    logic_rules: list[LogicRuleIn] | None = None
 
 
 class QuestionOrder(BaseModel):
@@ -112,7 +128,8 @@ class PublicForm(BaseModel):
 
 class AnswerIn(BaseModel):
     question_id: int
-    # str for text/email, number for number/rating, option id for choices, bool for yes/no.
+    # str for text/email, number for number/rating, option id for choices, bool for yes/no,
+    # upload id for file uploads.
     value: Any = None
 
 
@@ -125,6 +142,15 @@ class AnswerOut(BaseModel):
     question_title: str
     question_type: QuestionType
     value: str
+    # Download link, for file-upload answers.
+    file_url: str | None = None
+
+
+class UploadOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    filename: str
+    size: int
 
 
 class ResponseOut(BaseModel):

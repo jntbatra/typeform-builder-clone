@@ -48,12 +48,12 @@ export default function ResultsPage() {
       <FormHeader formId={form.id} title={form.title} active="results" />
       <main className="mx-auto w-full max-w-5xl flex-1 p-8">
         <div className="flex items-center justify-between">
-          <div className="flex gap-1 rounded-lg bg-neutral-200/70 p-1">
+          <div className="flex gap-1 rounded-lg bg-subtle-strong p-1">
             {VIEWS.map((name) => (
               <button
                 key={name}
                 onClick={() => setView(name)}
-                className={`rounded-md px-3 py-1 text-sm ${view === name ? "bg-white shadow-sm" : "text-muted hover:text-ink"}`}
+                className={`rounded-md px-3 py-1 text-sm ${view === name ? "bg-surface shadow-sm" : "text-muted hover:text-ink"}`}
               >
                 {name}
                 {name === "Responses" && ` [${responses.length}]`}

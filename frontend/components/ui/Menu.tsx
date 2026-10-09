@@ -48,7 +48,7 @@ export function Menu({ trigger, items, align = "right", label = "Open menu" }: M
       {open && (
         <div
           role="menu"
-          className={`absolute z-40 mt-1 min-w-44 rounded-lg border border-line bg-white py-1 shadow-xl ${align === "right" ? "right-0" : "left-0"}`}
+          className={`absolute z-40 mt-1 min-w-44 rounded-lg border border-line bg-surface py-1 shadow-xl ${align === "right" ? "right-0" : "left-0"}`}
         >
           {items.map((item) => (
             <button
@@ -59,7 +59,7 @@ export function Menu({ trigger, items, align = "right", label = "Open menu" }: M
                 setOpen(false);
                 item.onSelect();
               }}
-              className={`block w-full px-3 py-2 text-left text-sm hover:bg-neutral-100 ${item.danger ? "text-red-700" : ""}`}
+              className={`block w-full px-3 py-2 text-left text-sm hover:bg-subtle ${item.danger ? "text-red-700 dark:text-red-400" : ""}`}
             >
               {item.label}
             </button>

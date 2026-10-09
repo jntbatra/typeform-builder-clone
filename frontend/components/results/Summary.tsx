@@ -3,7 +3,7 @@ import type { FormStats, QuestionStats } from "@/lib/types";
 
 function BigNumber({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-white p-5 ring-1 ring-black/5">
+    <div className="rounded-xl bg-surface p-5 ring-1 ring-line">
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 text-3xl">{value}</p>
     </div>
@@ -24,7 +24,7 @@ function CountBars({ stats }: { stats: QuestionStats }) {
                 {item.count} · {share}%
               </span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
+            <div className="h-2 overflow-hidden rounded-full bg-subtle">
               <div className="h-full rounded-full bg-[#0445AF]" style={{ width: `${share}%` }} />
             </div>
           </li>
@@ -36,7 +36,7 @@ function CountBars({ stats }: { stats: QuestionStats }) {
 
 function QuestionSummary({ stats, number, total }: { stats: QuestionStats; number: number; total: number }) {
   return (
-    <section className="rounded-xl bg-white p-6 ring-1 ring-black/5">
+    <section className="rounded-xl bg-surface p-6 ring-1 ring-line">
       <div className="flex items-start gap-3">
         <TypeTile type={stats.type} number={number} />
         <div className="min-w-0 flex-1">
@@ -60,7 +60,7 @@ function QuestionSummary({ stats, number, total }: { stats: QuestionStats; numbe
         {stats.samples.length > 0 && (
           <ul className="flex flex-col gap-1.5">
             {stats.samples.map((sample, index) => (
-              <li key={index} className="rounded-md bg-neutral-50 px-3 py-2 text-sm">
+              <li key={index} className="rounded-md bg-subtle px-3 py-2 text-sm">
                 {sample}
               </li>
             ))}

@@ -1,5 +1,6 @@
 // Everything the UI needs to know about each question type, in one place.
 
+import { visitedIndices } from "./logic";
 import type { Answers, AnswerValue, Question, QuestionType } from "./types";
 
 export interface QuestionTypeMeta {
@@ -20,6 +21,7 @@ export const QUESTION_TYPES: Record<QuestionType, QuestionTypeMeta> = {
   email: { label: "Email", glyph: "@", color: "#bfe6cf", placeholder: "name@example.com" },
   number: { label: "Number", glyph: "#", color: "#f7dc9c", placeholder: "Type your answer here..." },
   rating: { label: "Rating", glyph: "★", color: "#f9c9b4", placeholder: "" },
+  file_upload: { label: "File Upload", glyph: "⇪", color: "#c9d3f7", placeholder: "" },
 };
 
 export const QUESTION_TYPE_ORDER = Object.keys(QUESTION_TYPES) as QuestionType[];
@@ -40,15 +42,21 @@ export function validateAnswer(question: Question, value: AnswerValue): string |
   return null;
 }
 
-/** Convert the runner's answers into the payload the API expects, dropping skipped questions. */
+/** One answer in the shape the API expects (see AnswerIn in backend/app/schemas.py). */
+function toApiValue(question: Question, value: AnswerValue) {
+  if (question.type === "number") return Number(value);
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "object" && value !== null) return value.upload_id;
+  return value;
+}
+
+/**
+ * Convert the runner's answers into the payload the API expects. Only questions on the
+ * respondent's path are sent: answers to questions a logic jump skipped are dropped.
+ */
 export function toSubmission(questions: Question[], answers: Answers) {
-  return questions
+  return visitedIndices(questions, answers)
+    .map((index) => questions[index])
     .filter((q) => !isBlank(answers[q.id]))
-    .map((q) => {
-      const value = answers[q.id];
-      return {
-        question_id: q.id,
-        value: q.type === "number" ? Number(value) : typeof value === "string" ? value.trim() : value,
-      };
-    });
+    .map((q) => ({ question_id: q.id, value: toApiValue(q, answers[q.id]) }));
 }

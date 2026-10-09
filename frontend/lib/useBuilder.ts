@@ -16,15 +16,19 @@ export type QuestionEdit = Partial<Omit<Question, "id" | "position">>;
 
 /** Local Question fields → API patch. New options (negative ids) are sent without an id. */
 function toApiPatch(patch: QuestionEdit): QuestionPatch {
-  const { options, ...rest } = patch;
-  if (!options) return rest;
-  return {
-    ...rest,
-    options: options.map((option, index) => ({
+  const { options, logic_rules, ...rest } = patch;
+  const apiPatch: QuestionPatch = rest;
+  if (options) {
+    apiPatch.options = options.map((option, index) => ({
       id: option.id > 0 ? option.id : undefined,
       label: option.label.trim() || `Choice ${index + 1}`,
-    })),
-  };
+    }));
+  }
+  if (logic_rules) {
+    // Rules are replaced as a whole on the server, so their ids are not sent.
+    apiPatch.logic_rules = logic_rules.map(({ operator, value, target_question_id }) => ({ operator, value, target_question_id }));
+  }
+  return apiPatch;
 }
 
 /**
@@ -85,7 +89,7 @@ export function useBuilder(formId: number, onError: (message: string) => void) {
     // Adopt what the server decided (real option ids, defaults after a type change),
     // unless the user has typed again in the meantime.
     if (saved && !pendingQuestions.current.has(id)) {
-      replaceQuestion(id, (q) => ({ ...q, options: saved.options, settings: saved.settings }));
+      replaceQuestion(id, (q) => ({ ...q, options: saved.options, settings: saved.settings, logic_rules: saved.logic_rules }));
     }
   };
 
@@ -119,7 +123,10 @@ export function useBuilder(formId: number, onError: (message: string) => void) {
 
   const deleteQuestion = async (id: number) => {
     if (!form) return;
-    const remaining = form.questions.filter((q) => q.id !== id);
+    const remaining = form.questions
+      .filter((q) => q.id !== id)
+      // The server drops jumps that pointed at the deleted question; mirror that here.
+      .map((q) => ({ ...q, logic_rules: q.logic_rules.filter((rule) => rule.target_question_id !== id) }));
     clearTimeout(timers.current.get(id));
     pendingQuestions.current.delete(id);
     setForm({ ...form, questions: remaining });
@@ -131,7 +138,11 @@ export function useBuilder(formId: number, onError: (message: string) => void) {
     if (!form) return;
     const byId = new Map(form.questions.map((q) => [q.id, q]));
     setForm({ ...form, questions: orderedIds.map((id, position) => ({ ...byId.get(id)!, position })) });
-    await track(() => api.reorderQuestions(formId, orderedIds));
+    const saved = await track(() => api.reorderQuestions(formId, orderedIds));
+    if (!saved) return;
+    // Reordering can remove jumps that would now point backwards; take the server's rules.
+    const rules = new Map(saved.map((q) => [q.id, q.logic_rules]));
+    setForm((current) => current && { ...current, questions: current.questions.map((q) => ({ ...q, logic_rules: rules.get(q.id) ?? q.logic_rules })) });
   };
 
   const setPublished = async (published: boolean) => {

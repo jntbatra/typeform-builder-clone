@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DEFAULT_THEME } from "@/components/respondent/FormRunner";
 import { Toggle } from "@/components/ui/Toggle";
+import { LogicEditor } from "./LogicEditor";
 import { QUESTION_TYPE_ORDER, QUESTION_TYPES } from "@/lib/questions";
 import type { QuestionType, Theme } from "@/lib/types";
 import type { Builder } from "@/lib/useBuilder";
@@ -18,14 +19,14 @@ const THEME_PRESETS: { name: string; theme: Required<Theme> }[] = [
 const PANEL_TABS = ["Question", "Design", "Logic"] as const;
 const RATING_STEPS = [3, 4, 5, 6, 7, 8, 9, 10];
 
-const FIELD = "h-9 w-full rounded-md border border-line bg-white px-2.5 text-sm outline-none focus:border-ink";
+const FIELD = "h-9 w-full rounded-md border border-line bg-surface px-2.5 text-sm outline-none focus:border-ink";
 
 function ComingSoon({ title, children }: { title: string; children: string }) {
   return (
     <div className="rounded-lg border border-dashed border-line p-4 text-center">
       <p className="text-sm font-medium">{title}</p>
       <p className="mt-1 text-xs text-muted">{children}</p>
-      <span className="mt-3 inline-block rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs">Coming soon</span>
+      <span className="mt-3 inline-block rounded-full bg-subtle px-2.5 py-0.5 text-xs">Coming soon</span>
     </div>
   );
 }
@@ -39,7 +40,7 @@ export function SettingsPanel({ builder, className = "flex" }: { builder: Builde
   const theme = { ...DEFAULT_THEME, ...form.theme };
 
   return (
-    <aside className={`w-full shrink-0 flex-col border-l border-line bg-white md:w-72 ${className}`}>
+    <aside className={`w-full shrink-0 flex-col border-l border-line bg-surface md:w-72 ${className}`}>
       <div className="flex gap-5 border-b border-line px-4">
         {PANEL_TABS.map((name) => (
           <button
@@ -132,7 +133,7 @@ export function SettingsPanel({ builder, className = "flex" }: { builder: Builde
                   <button
                     key={preset.name}
                     onClick={() => builder.updateForm({ theme: preset.theme })}
-                    className={`rounded-lg border p-2 text-left text-xs ${active ? "border-ink ring-1 ring-ink" : "border-line hover:border-neutral-400"}`}
+                    className={`rounded-lg border p-2 text-left text-xs ${active ? "border-ink ring-1 ring-ink" : "border-line hover:border-muted"}`}
                   >
                     <span
                       className="mb-1.5 flex h-12 flex-col justify-center gap-1 rounded px-2"
@@ -155,7 +156,7 @@ export function SettingsPanel({ builder, className = "flex" }: { builder: Builde
                     type="color"
                     value={theme[key]}
                     onChange={(event) => builder.updateForm({ theme: { ...theme, [key]: event.target.value } })}
-                    className="h-7 w-10 cursor-pointer rounded border border-line bg-white"
+                    className="h-7 w-10 cursor-pointer rounded border border-line bg-surface"
                   />
                 </label>
               ))}
@@ -164,10 +165,16 @@ export function SettingsPanel({ builder, className = "flex" }: { builder: Builde
         )}
 
         {tab === "Logic" && (
-          <div className="flex flex-col gap-3">
-            <ComingSoon title="Branching and logic jumps">
-              Send respondents to different questions based on their answers.
-            </ComingSoon>
+          <div className="flex flex-col gap-5">
+            {question ? (
+              <LogicEditor
+                question={question}
+                questions={form.questions}
+                onChange={(logic_rules) => builder.updateQuestion(question.id, { logic_rules })}
+              />
+            ) : (
+              <p className="text-sm text-muted">Select a question to add logic jumps to it.</p>
+            )}
             <ComingSoon title="Scoring and calculations">Add up points as people answer.</ComingSoon>
           </div>
         )}

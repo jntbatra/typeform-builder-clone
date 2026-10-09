@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from . import models
 from .database import Base, SessionLocal, engine
 from .deps import DEFAULT_CREATOR_EMAIL
+from .logic import visited_questions
 
 # (type, title, description, required, options or rating max)
 FEEDBACK_QUESTIONS = [
@@ -45,6 +46,7 @@ JOB_QUESTIONS = [
     ("dropdown", "Which role are you applying for?", "", True,
      ["Frontend Engineer", "Backend Engineer", "Product Designer"]),
     ("long_text", "Tell us about a project you're proud of.", "", True, None),
+    ("file_upload", "Attach your résumé", "PDF or Word, up to 5 MB.", False, None),
 ]
 
 NAMES = ["Aarav Mehta", "Diya Kapoor", "Kabir Singh", "Meera Nair", "Rohan Gupta", "Sara Khan",
@@ -94,8 +96,21 @@ def fake_answer(rng: random.Random, question: models.Question, name: str) -> mod
         return models.Answer(value_text=str(rating), value_number=float(rating))
     if qtype == "yes_no":
         return models.Answer(value_text="Yes" if rng.random() < 0.75 else "No")
+    if qtype == "file_upload":
+        return None
     option = rng.choice(question.options)
     return models.Answer(value_text=option.label, option_id=option.id)
+
+
+def submitted_value(question: models.Question, answer: models.Answer):
+    """The value a browser would have sent for this stored answer (what logic rules compare)."""
+    if question.type in models.CHOICE_TYPES:
+        return answer.option_id
+    if question.type == "yes_no":
+        return answer.value_text == "Yes"
+    if question.type in models.NUMERIC_TYPES:
+        return answer.value_number
+    return answer.value_text
 
 
 def add_responses(db: Session, rng: random.Random, form: models.Form, count: int) -> None:
@@ -104,8 +119,11 @@ def add_responses(db: Session, rng: random.Random, form: models.Form, count: int
         response = models.Response(
             form_id=form.id, submitted_at=now - timedelta(hours=rng.randint(1, 240), minutes=rng.randint(0, 59))
         )
-        for question in form.questions:
-            answer = fake_answer(rng, question, name)
+        drafted = {q.id: fake_answer(rng, q, name) for q in form.questions}
+        submitted = {q.id: submitted_value(q, drafted[q.id]) for q in form.questions if drafted[q.id]}
+        # Keep only the questions this respondent would have been shown, given the logic jumps.
+        for question in visited_questions(form.questions, submitted):
+            answer = drafted[question.id]
             if answer is not None:
                 answer.question_id = question.id
                 response.answers.append(answer)
@@ -126,7 +144,13 @@ def seed(db: Session) -> None:
     feedback.slug, event.slug, job.slug = "feedback", "devconf", "job-application"
     feedback.published_at = event.published_at = models.utcnow()
     db.add_all([feedback, event, job])
-    db.flush()  # assigns ids to questions and options, needed by the answers below
+    db.flush()  # assigns ids to questions and options, needed by the rules and answers below
+
+    # Logic jumps on the feedback form: unhappy respondents go straight to the open comment.
+    rating, recommend, comment = feedback.questions[2], feedback.questions[4], feedback.questions[7]
+    rating.logic_rules.append(models.LogicRule(operator="less_than", value="3", target_question_id=comment.id))
+    recommend.logic_rules.append(models.LogicRule(operator="equals", value="no", target_question_id=comment.id))
+    db.flush()
 
     add_responses(db, rng, feedback, 14)
     add_responses(db, rng, event, 9)

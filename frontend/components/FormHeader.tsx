@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const TABS = [
   { key: "create", label: "Create" },
@@ -23,7 +24,7 @@ interface FormHeaderProps {
 
 export function Logo() {
   return (
-    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink text-sm font-bold text-white" aria-label="Formflow">
+    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink text-sm font-bold text-surface" aria-label="Formflow">
       F
     </span>
   );
@@ -32,7 +33,7 @@ export function Logo() {
 /** Top bar shared by every page of a single form: breadcrumb, section tabs, actions. */
 export function FormHeader({ formId, title, active, onRename, children }: FormHeaderProps) {
   return (
-    <header className="flex shrink-0 flex-wrap items-center border-b border-line bg-white px-4 md:h-14 md:flex-nowrap">
+    <header className="flex shrink-0 flex-wrap items-center border-b border-line bg-surface px-4 md:h-14 md:flex-nowrap">
       <div className="flex h-14 min-w-0 flex-1 items-center gap-2 text-sm">
         <Link href="/">
           <Logo />
@@ -46,7 +47,7 @@ export function FormHeader({ formId, title, active, onRename, children }: FormHe
             aria-label="Form title"
             value={title}
             onChange={(event) => onRename(event.target.value)}
-            className="min-w-0 max-w-64 flex-1 truncate rounded px-1.5 py-1 outline-none hover:bg-neutral-100 focus:bg-neutral-100"
+            className="min-w-0 max-w-64 flex-1 truncate rounded px-1.5 py-1 outline-none hover:bg-subtle focus:bg-subtle"
           />
         ) : (
           <span className="truncate px-1.5">{title}</span>
@@ -67,7 +68,10 @@ export function FormHeader({ formId, title, active, onRename, children }: FormHe
         ))}
       </nav>
 
-      <div className="flex h-14 items-center justify-end gap-2 md:flex-1">{children}</div>
+      <div className="flex h-14 items-center justify-end gap-2 md:flex-1">
+        <ThemeToggle />
+        {children}
+      </div>
     </header>
   );
 }

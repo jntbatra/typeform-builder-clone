@@ -41,6 +41,7 @@ export default function PublicFormPage() {
       onSubmit={async (answers) => {
         await api.submitResponse(slug, toSubmission(form.questions, answers));
       }}
+      onUpload={(questionId, file) => api.uploadFile(slug, questionId, file)}
     />
   );
 }

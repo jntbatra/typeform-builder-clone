@@ -1,16 +1,44 @@
 @import "tailwindcss";
 
+/* `dark:` utilities apply when <html data-theme="dark"> (set by the theme toggle). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Creator-side colours. Components use these through the Tailwind tokens below
+   (bg-surface, text-ink, border-line...), so dark mode is just a second set of values. */
+:root {
+  --ink: #262627;
+  --muted: #737373;
+  --line: #e3e3e3;
+  --canvas: #f7f7f6;
+  --surface: #ffffff;
+  --subtle: #f2f2f2;
+  --subtle-strong: #e2e2e2;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #ededec;
+  --muted: #a3a3a3;
+  --line: #343437;
+  --canvas: #131314;
+  --surface: #1d1d1f;
+  --subtle: #29292c;
+  --subtle-strong: #3a3a3e;
+}
+
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --color-ink: #262627;
-  --color-muted: #737373;
-  --color-line: #e3e3e3;
-  --color-canvas: #f7f7f6;
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-subtle-strong: var(--subtle-strong);
 }
 
 body {
-  background: #ffffff;
-  color: #262627;
+  background: var(--surface);
+  color: var(--ink);
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }

@@ -19,19 +19,27 @@ export function ResponsesTable({ questions, responses, onDelete }: ResponsesTabl
 
   if (responses.length === 0) {
     return (
-      <div className="mt-6 rounded-xl bg-white p-12 text-center ring-1 ring-black/5">
+      <div className="mt-6 rounded-xl bg-surface p-12 text-center ring-1 ring-line">
         <p className="text-lg">No responses yet</p>
         <p className="mt-1 text-sm text-muted">Publish and share your form to start collecting answers.</p>
       </div>
     );
   }
 
-  const answerOf = (response: FormResponse, questionId: number) =>
-    response.answers.find((a) => a.question_id === questionId)?.value ?? "";
+  /** The answer as text, or as a download link when it is an uploaded file. */
+  const answerOf = (response: FormResponse, questionId: number) => {
+    const answer = response.answers.find((a) => a.question_id === questionId);
+    if (!answer?.file_url) return answer?.value ?? "";
+    return (
+      <a href={answer.file_url} onClick={(event) => event.stopPropagation()} className="text-[#0445AF] underline dark:text-[#8ab4ff]">
+        {answer.value}
+      </a>
+    );
+  };
 
   return (
     <>
-      <div className="mt-6 overflow-x-auto rounded-xl bg-white ring-1 ring-black/5">
+      <div className="mt-6 overflow-x-auto rounded-xl bg-surface ring-1 ring-line">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-line text-muted">
@@ -50,12 +58,12 @@ export function ResponsesTable({ questions, responses, onDelete }: ResponsesTabl
                 tabIndex={0}
                 onClick={() => setOpenId(response.id)}
                 onKeyDown={(event) => event.key === "Enter" && setOpenId(response.id)}
-                className="cursor-pointer border-b border-line last:border-0 hover:bg-neutral-50"
+                className="cursor-pointer border-b border-line last:border-0 hover:bg-subtle"
               >
                 <td className="whitespace-nowrap px-4 py-3 text-muted">{formatDate(response.submitted_at)}</td>
                 {questions.map((question) => (
                   <td key={question.id} className="max-w-52 truncate px-4 py-3">
-                    {answerOf(response, question.id) || <span className="text-neutral-300">—</span>}
+                    {answerOf(response, question.id) || <span className="text-muted">—</span>}
                   </td>
                 ))}
               </tr>
@@ -68,7 +76,7 @@ export function ResponsesTable({ questions, responses, onDelete }: ResponsesTabl
         <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setOpenId(null)}>
           <aside
             aria-label="Response details"
-            className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+            className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-surface shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-line p-4">
@@ -76,7 +84,7 @@ export function ResponsesTable({ questions, responses, onDelete }: ResponsesTabl
                 <h2 className="font-medium">Response #{open.id}</h2>
                 <p className="text-sm text-muted">{formatDate(open.submitted_at)}</p>
               </div>
-              <button aria-label="Close" onClick={() => setOpenId(null)} className="rounded p-1 text-muted hover:bg-neutral-100">
+              <button aria-label="Close" onClick={() => setOpenId(null)} className="rounded p-1 text-muted hover:bg-subtle">
                 ✕
               </button>
             </div>
@@ -88,7 +96,7 @@ export function ResponsesTable({ questions, responses, onDelete }: ResponsesTabl
                     <span className="text-muted">{question.title || "Untitled question"}</span>
                   </div>
                   <p className="mt-1.5 whitespace-pre-wrap pl-[58px]">
-                    {answerOf(open, question.id) || <span className="text-neutral-400">No answer</span>}
+                    {answerOf(open, question.id) || <span className="text-muted">No answer</span>}
                   </p>
                 </li>
               ))}

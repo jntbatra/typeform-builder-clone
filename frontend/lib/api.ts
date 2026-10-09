@@ -1,6 +1,6 @@
 // Thin typed client for the backend. Every network call in the app goes through here.
 
-import type { Form, FormResponse, FormStats, FormSummary, Question, QuestionType, RunnableForm } from "./types";
+import type { FileAnswer, Form, FormResponse, FormStats, FormSummary, LogicRule, Question, QuestionType, RunnableForm } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -16,7 +16,8 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...init,
-    headers: init?.body ? { "Content-Type": "application/json" } : undefined,
+    // JSON bodies are sent as strings; a FormData body (file upload) sets its own content type.
+    headers: typeof init?.body === "string" ? { "Content-Type": "application/json" } : undefined,
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
@@ -33,6 +34,7 @@ const json = (method: string, body?: unknown): RequestInit => ({
 
 export type QuestionPatch = Partial<Pick<Question, "type" | "title" | "description" | "required" | "settings">> & {
   options?: { id?: number; label: string }[];
+  logic_rules?: Omit<LogicRule, "id">[];
 };
 
 export type FormPatch = Partial<Pick<Form, "title" | "theme" | "thank_you_title" | "thank_you_message">>;
@@ -63,4 +65,14 @@ export const api = {
   recordView: (slug: string) => request<void>(`/public/forms/${slug}/views`, json("POST")),
   submitResponse: (slug: string, answers: { question_id: number; value: unknown }[]) =>
     request<{ id: number }>(`/public/forms/${slug}/responses`, json("POST", { answers })),
+  /** Send the file for a file-upload question; the result is what gets submitted as its answer. */
+  uploadFile: async (slug: string, questionId: number, file: File): Promise<FileAnswer> => {
+    const body = new FormData();
+    body.append("file", file);
+    const saved = await request<{ id: string; filename: string }>(
+      `/public/forms/${slug}/questions/${questionId}/uploads`,
+      { method: "POST", body },
+    );
+    return { upload_id: saved.id, filename: saved.filename };
+  },
 };

@@ -112,6 +112,27 @@ def duplicate_form(form: models.Form = Depends(get_owned_form), db: Session = De
             )
         )
     db.add(copy)
+    db.flush()  # assigns ids to the copied questions and options
+
+    # Rules point at questions and options by id, so translate the old ids to the copies'.
+    pairs = list(zip(form.questions, copy.questions))
+    question_ids = {old.id: new.id for old, new in pairs}
+    option_ids = {
+        str(old_option.id): str(new_option.id)
+        for old, new in pairs
+        for old_option, new_option in zip(old.options, new.options)
+    }
+    for old, new in pairs:
+        for rule in old.logic_rules:
+            is_choice = old.type in models.CHOICE_TYPES
+            new.logic_rules.append(
+                models.LogicRule(
+                    operator=rule.operator,
+                    value=option_ids.get(rule.value, rule.value) if is_choice else rule.value,
+                    target_question_id=question_ids.get(rule.target_question_id),
+                    position=rule.position,
+                )
+            )
     db.commit()
     return copy
 

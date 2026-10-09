@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/FormHeader";
 import { Menu } from "@/components/ui/Menu";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Button, Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
@@ -70,8 +71,9 @@ export default function DashboardPage() {
           <span className="font-medium">Formflow</span>
         </div>
         <div className="flex items-center gap-3 text-sm">
+          <ThemeToggle />
           <span className="text-muted">Default Creator</span>
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e3c8f0] text-xs font-medium">DC</span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e3c8f0] text-xs font-medium text-[#262627]">DC</span>
         </div>
       </header>
 
@@ -81,7 +83,7 @@ export default function DashboardPage() {
             + Create a new form
           </Button>
           <p className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted">Workspaces</p>
-          <div className="flex items-center justify-between rounded-md bg-neutral-100 px-2 py-1.5 text-sm">
+          <div className="flex items-center justify-between rounded-md bg-subtle px-2 py-1.5 text-sm">
             My workspace <span className="text-muted">{forms?.length ?? ""}</span>
           </div>
           <div className="mt-auto rounded-lg border border-dashed border-line p-3 text-xs text-muted">
@@ -102,7 +104,7 @@ export default function DashboardPage() {
             {forms === null ? (
               <p className="mt-10 text-center text-muted">Loading…</p>
             ) : forms.length === 0 ? (
-              <div className="mt-10 rounded-xl bg-white p-12 text-center ring-1 ring-black/5">
+              <div className="mt-10 rounded-xl bg-surface p-12 text-center ring-1 ring-line">
                 <p className="text-lg">You don&apos;t have any forms yet</p>
                 <Button className="mt-4" onClick={() => openDialog({ kind: "create" })}>
                   Create your first form
@@ -121,7 +123,7 @@ export default function DashboardPage() {
                   {forms.map((form) => (
                     <li
                       key={form.id}
-                      className="grid grid-cols-[1fr_40px] items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-black/5 hover:shadow-md sm:grid-cols-[1fr_110px_110px_110px_170px_40px]"
+                      className="grid grid-cols-[1fr_40px] items-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm ring-1 ring-line hover:shadow-md sm:grid-cols-[1fr_110px_110px_110px_170px_40px]"
                     >
                       <Link href={`/forms/${form.id}/create`} className="flex min-w-0 items-center gap-3">
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#b9d8f5] text-[10px] font-bold text-[#0445AF]">
@@ -130,7 +132,7 @@ export default function DashboardPage() {
                         <span className="truncate font-medium">{form.title}</span>
                       </Link>
                       <span className="hidden sm:block">
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${form.status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-neutral-200 text-neutral-700"}`}>
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${form.status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-subtle-strong text-ink"}`}>
                           {form.status === "published" ? "Published" : "Draft"}
                         </span>
                       </span>
@@ -141,7 +143,7 @@ export default function DashboardPage() {
                       <span className="hidden text-muted sm:block">{formatDate(form.updated_at)}</span>
                       <Menu
                         label={`Actions for ${form.title}`}
-                        trigger={<span className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-neutral-100">⋯</span>}
+                        trigger={<span className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-subtle">⋯</span>}
                         items={[
                           { label: "Open", onSelect: () => router.push(`/forms/${form.id}/create`) },
                           { label: "Results", onSelect: () => router.push(`/forms/${form.id}/results`) },

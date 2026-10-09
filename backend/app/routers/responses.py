@@ -2,6 +2,7 @@
 
 import csv
 import io
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import func
@@ -13,7 +14,8 @@ from ..deps import get_current_creator, get_owned_form
 
 router = APIRouter(prefix="/api", tags=["responses"])
 
-TEXT_TYPES = ("short_text", "long_text", "email")
+# Types whose summary is a list of recent answers (for uploads: the file names).
+TEXT_TYPES = ("short_text", "long_text", "email", "file_upload")
 SAMPLE_SIZE = 5
 
 
@@ -22,7 +24,11 @@ def serialize_response(response: models.Response, questions: list[models.Questio
     by_question = {a.question_id: a for a in response.answers}
     answers = [
         schemas.AnswerOut(
-            question_id=q.id, question_title=q.title, question_type=q.type, value=by_question[q.id].value_text
+            question_id=q.id,
+            question_title=q.title,
+            question_type=q.type,
+            value=by_question[q.id].value_text,
+            file_url=f"/api/uploads/{by_question[q.id].upload.id}" if by_question[q.id].upload else None,
         )
         for q in questions
         if q.id in by_question
@@ -33,7 +39,7 @@ def serialize_response(response: models.Response, questions: list[models.Questio
 def load_responses(db: Session, form: models.Form) -> list[models.Response]:
     return (
         db.query(models.Response)
-        .options(selectinload(models.Response.answers))
+        .options(selectinload(models.Response.answers).selectinload(models.Answer.upload))
         .filter(models.Response.form_id == form.id)
         .order_by(models.Response.submitted_at.desc())
         .all()
@@ -146,6 +152,25 @@ def get_owned_response(
 @router.get("/responses/{response_id}", response_model=schemas.ResponseOut)
 def get_response(response: models.Response = Depends(get_owned_response)):
     return serialize_response(response, response.form.questions)
+
+
+@router.get("/uploads/{upload_id}")
+def download_upload(
+    upload_id: str, db: Session = Depends(get_db), creator: models.Creator = Depends(get_current_creator)
+):
+    upload = db.get(models.Upload, upload_id)
+    question = db.get(models.Question, upload.question_id) if upload else None
+    if upload is None or question is None or question.form.creator_id != creator.id:
+        raise HTTPException(404, "File not found")
+    return Response(
+        content=upload.data,
+        # Always a download, never rendered: an uploaded HTML file must not run on our origin.
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(upload.filename)}",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.delete("/responses/{response_id}", status_code=204)

@@ -27,13 +27,13 @@ export default function ConnectPage() {
         <p className="mt-1 text-sm text-muted">Send your responses to the tools you already use. Integrations are coming soon.</p>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {INTEGRATIONS.map((item) => (
-            <section key={item.name} className="rounded-xl bg-white p-5 ring-1 ring-black/5">
+            <section key={item.name} className="rounded-xl bg-surface p-5 ring-1 ring-line">
               <div className="flex items-center justify-between">
                 <h2 className="font-medium">{item.name}</h2>
-                <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs">Coming soon</span>
+                <span className="rounded-full bg-subtle px-2.5 py-0.5 text-xs">Coming soon</span>
               </div>
               <p className="mt-2 text-sm text-muted">{item.text}</p>
-              <button disabled className="mt-4 h-8 rounded-md bg-neutral-100 px-3 text-sm text-muted">
+              <button disabled className="mt-4 h-8 rounded-md bg-subtle px-3 text-sm text-muted">
                 Connect
               </button>
             </section>

@@ -39,7 +39,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
-              className="flex items-center gap-2 rounded-lg bg-ink px-4 py-3 text-sm text-white shadow-lg"
+              className="flex items-center gap-2 rounded-lg bg-[#262627] px-4 py-3 text-sm text-white shadow-lg"
             >
               <span className={t.kind === "error" ? "text-red-400" : "text-emerald-400"}>
                 {t.kind === "error" ? "✕" : "✓"}

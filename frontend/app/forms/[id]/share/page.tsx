@@ -43,7 +43,7 @@ export default function SharePage() {
       <main className="mx-auto w-full max-w-3xl flex-1 p-8">
         <h1 className="text-2xl">Share your form</h1>
 
-        <section className="mt-6 rounded-xl bg-white p-6 ring-1 ring-black/5">
+        <section className="mt-6 rounded-xl bg-surface p-6 ring-1 ring-line">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-medium">Share the link</h2>
@@ -51,13 +51,13 @@ export default function SharePage() {
                 {published ? "Anyone with this link can respond. No login needed." : "Publish the form to activate its link."}
               </p>
             </div>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${published ? "bg-emerald-100 text-emerald-800" : "bg-neutral-200 text-neutral-700"}`}>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${published ? "bg-emerald-100 text-emerald-800" : "bg-subtle-strong text-ink"}`}>
               {published ? "Published" : "Draft"}
             </span>
           </div>
 
           <div className="mt-4 flex gap-2">
-            <input readOnly aria-label="Public link" value={shareUrl} disabled={!published} className="h-9 min-w-0 flex-1 rounded-md border border-line bg-neutral-50 px-3 text-sm disabled:text-muted" />
+            <input readOnly aria-label="Public link" value={shareUrl} disabled={!published} className="h-9 min-w-0 flex-1 rounded-md border border-line bg-subtle px-3 text-sm disabled:text-muted" />
             {published ? (
               <>
                 <Button onClick={copy}>Copy link</Button>
@@ -78,10 +78,10 @@ export default function SharePage() {
 
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {COMING_SOON.map((item) => (
-            <section key={item.title} className="rounded-xl bg-white p-5 ring-1 ring-black/5">
+            <section key={item.title} className="rounded-xl bg-surface p-5 ring-1 ring-line">
               <h2 className="text-sm font-medium">{item.title}</h2>
               <p className="mt-1 text-sm text-muted">{item.text}</p>
-              <span className="mt-3 inline-block rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs">Coming soon</span>
+              <span className="mt-3 inline-block rounded-full bg-subtle px-2.5 py-0.5 text-xs">Coming soon</span>
             </section>
           ))}
         </div>

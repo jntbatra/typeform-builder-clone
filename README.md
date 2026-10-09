@@ -11,12 +11,15 @@ one-question-at-a-time conversational flow, and read the results.
 
 | Area | What works |
 | --- | --- |
-| Form builder | Add, edit, drag-to-reorder and delete questions. Eight types: short text, long text, multiple choice, dropdown, email, number, yes/no, rating. Required toggle, description, placeholder, inline editing on a live canvas, full-screen preview. Edits autosave. Usable on a phone (one panel at a time). |
+| Form builder | Add, edit, drag-to-reorder and delete questions. Nine types: short text, long text, multiple choice, dropdown, email, number, yes/no, rating, file upload. Required toggle, description, placeholder, inline editing on a live canvas, full-screen preview. Edits autosave. Usable on a phone (one panel at a time). |
 | Form management | List with status, response count and completion rate. Create, rename, duplicate, delete. Publish / unpublish with a public link. |
 | Respondent flow | One question per screen with slide transitions, progress bar, Enter to continue, arrow keys to move, letter / number shortcuts for choices and ratings, auto-advance on pick, client and server validation, thank-you screen. No login. |
 | Results | Summary stats per question (counts, averages, recent answers), responses table, single response drawer, delete. |
-| Bonus | Custom themes (presets and colour pickers), CSV export, view tracking and completion rate. |
-| Placeholders | Logic jumps, integrations / webhooks, team sharing, embed, file upload and payment questions are marked "Coming soon". |
+| Logic jumps | Per-question rules ("if the answer is X, go to question Y" or "to the end"). The respondent flow follows them, Back retraces the path actually taken, and the server validates only the questions that were shown. |
+| File upload | Click-or-drop upload (5 MB limit) stored with the response and downloadable from the results. |
+| Dark mode | Light / dark switch for the creator screens, remembered per browser. |
+| Other bonus | Custom themes (presets and colour pickers), CSV export, view tracking and completion rate. |
+| Placeholders | Integrations / webhooks, team sharing, embed, scoring and payment questions are marked "Coming soon". |
 
 ## Run it locally
 
@@ -48,8 +51,8 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-Twelve API tests cover ordering and reordering, option editing, publish rules, server-side
-validation, stats, duplication and cascading deletes. Each test runs against its own throwaway
+Eighteen API tests cover ordering and reordering, option editing, publish rules, server-side
+validation, logic jumps, file uploads, stats, duplication and cascading deletes. Each test runs against its own throwaway
 database.
 
 | Variable | Where | Default | Purpose |
@@ -74,13 +77,14 @@ backend/app/
   models.py        SQLAlchemy models (the schema)
   schemas.py       Pydantic request / response shapes
   validation.py    server-side answer validation
+  logic.py         logic jumps: which questions a respondent is shown
   deps.py          current creator, ownership checks
   seed.py          sample data
   routers/
     forms.py       form CRUD, duplicate, publish
     questions.py   add / edit / reorder / delete questions
     responses.py   response list, single response, stats, CSV
-    public.py      anonymous: load a published form, submit a response
+    public.py      anonymous: load a published form, upload a file, submit a response
 
 frontend/
   app/
@@ -91,13 +95,14 @@ frontend/
   components/
     respondent/FormRunner.tsx   the one-question-at-a-time flow (also used by the builder preview)
     respondent/AnswerInput.tsx  the answer control for each question type
-    builder/                    QuestionList (drag and drop), QuestionCanvas, SettingsPanel
+    builder/                    QuestionList (drag and drop), QuestionCanvas, SettingsPanel, LogicEditor
     results/                    Summary, ResponsesTable
-    ui/                         Modal, Menu, Toast, Toggle
+    ui/                         Modal, Menu, Toast, Toggle, ThemeToggle, AutoTextarea
   lib/
     api.ts          the only place that calls the backend
     useBuilder.ts   builder state: optimistic edits, debounced autosave
     questions.ts    question type metadata and client-side validation
+    logic.ts        logic jumps (mirrors backend/app/logic.py)
     types.ts        shared TypeScript types
 ```
 
@@ -107,6 +112,13 @@ Design decisions worth knowing:
   preview cannot drift from what respondents see.
 - **Optimistic autosave.** Builder edits update local state immediately and are sent to the API
   500 ms after the last keystroke. Structural changes (add, delete, reorder, publish) save at once.
+- **Logic runs on both sides.** The browser uses the jump rules to pick the next question; the API
+  walks the same path on submit, so a required question that a jump skipped is not reported as
+  missing and answers to questions that were never shown are discarded. Jumps only go forward,
+  which makes loops impossible.
+- **Dark mode is a second set of CSS variables.** Components use colour tokens (`bg-surface`,
+  `text-ink`), and `<html data-theme="dark">` swaps their values. The respondent form is not
+  affected: its colours come from the form's own theme.
 - **Validation twice.** The browser validates for fast feedback; the API re-validates every
   submission because the public endpoint can be called directly. A rejected submission returns the
   failing question ids and the runner jumps to the first one.
@@ -115,7 +127,9 @@ Design decisions worth knowing:
 
 ```
 creators 1───* forms 1───* questions 1───* question_options
+                     │               1───* logic_rules *───1 questions (jump target)
                      1───* responses 1───* answers *───1 questions
+                                           answers 1───0..1 uploads
 ```
 
 | Table | Columns | Notes |
@@ -124,14 +138,17 @@ creators 1───* forms 1───* questions 1───* question_options
 | `forms` | `id`, `creator_id` → creators, `title`, `slug` (unique), `status` (draft / published), `theme` (JSON), `thank_you_title`, `thank_you_message`, `view_count`, `created_at`, `updated_at`, `published_at` | `slug` is a random public id, so share links cannot be guessed from numeric ids. |
 | `questions` | `id`, `form_id` → forms, `type`, `title`, `description`, `required`, `position`, `settings` (JSON) | `position` gives the order. `settings` holds type-specific extras such as rating size or placeholder. |
 | `question_options` | `id`, `question_id` → questions, `label`, `position` | Choices for multiple choice and dropdown. |
+| `logic_rules` | `id`, `question_id` → questions, `operator`, `value`, `target_question_id` → questions (nullable), `position` | "If the answer to `question_id` `operator` `value`, go to `target_question_id`". A null target means the end of the form. For choice questions `value` is the option id, so renaming an option does not break the rule. |
 | `responses` | `id`, `form_id` → forms, `submitted_at` | One row per submission. |
 | `answers` | `id`, `response_id` → responses, `question_id` → questions, `option_id` → question_options (nullable), `value_text`, `value_number` | Unique on (`response_id`, `question_id`). |
+| `uploads` | `id` (random token), `question_id` → questions, `answer_id` → answers (nullable, unique), `filename`, `content_type`, `size`, `data` (BLOB), `created_at` | The file of a file-upload answer. `answer_id` is null between upload and submit. |
 
 - Children are removed with their parent (`ON DELETE CASCADE`): deleting a form removes its
   questions, options, responses and answers.
 - `answers.option_id` is `ON DELETE SET NULL` and `value_text` keeps the label that was picked, so a
   response stays readable after the creator edits or removes that option.
 - `value_number` is filled for number and rating answers so averages are computed in SQL.
+- Deleting a question also deletes the rules that jump to it, and deleting an answer deletes its file.
 
 ## API overview
 
@@ -146,13 +163,15 @@ All routes are under `/api`. Interactive docs: `http://localhost:8000/docs`.
 | POST | `/forms/{id}/publish`, `/forms/{id}/unpublish` | Toggle the public link |
 | POST | `/forms/{id}/questions` | Add a question |
 | PUT | `/forms/{id}/questions/order` | Save a new question order |
-| PATCH / DELETE | `/questions/{id}` | Edit (including its options) or delete a question |
+| PATCH / DELETE | `/questions/{id}` | Edit (including its options and logic rules) or delete a question |
 | GET | `/forms/{id}/responses` | All responses of a form |
 | GET | `/forms/{id}/responses/export` | Responses as CSV |
 | GET | `/forms/{id}/stats` | Views, completion rate, per-question summary |
 | GET / DELETE | `/responses/{id}` | One response in full, or delete it |
+| GET | `/uploads/{id}` | Download an uploaded file |
 | GET | `/public/forms/{slug}` | Public: a published form (404 for drafts) |
 | POST | `/public/forms/{slug}/views` | Public: count a view |
+| POST | `/public/forms/{slug}/questions/{id}/uploads` | Public: upload a file for a file-upload question |
 | POST | `/public/forms/{slug}/responses` | Public: submit answers (422 with per-question errors) |
 
 ## Deploying
@@ -169,5 +188,8 @@ All routes are under `/api`. Interactive docs: `http://localhost:8000/docs`.
 - Multiple choice is single-select.
 - A form needs at least one question before it can be published.
 - A "view" is counted each time the public page loads; completion rate is responses ÷ views.
+- Uploaded files are stored in the database (5 MB each) so they live and die with their answer.
+  A file that is uploaded but never submitted stays as an orphan row; there is no clean-up job.
+- There are no migrations. After a schema change, reset the database with `python -m app.seed --reset`.
 - On hosts with an ephemeral disk, SQLite is re-created and re-seeded when the service restarts.
   A persistent disk or a hosted database (via `DATABASE_URL`) avoids that.
