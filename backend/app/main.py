@@ -31,5 +31,13 @@ app.include_router(public.router)
 
 
 @app.get("/api/health")
+# Also served without the /api prefix, where hosting platforms' health checks look by default.
+@app.get("/health", include_in_schema=False)
 def health():
     return {"status": "ok"}
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    """The API has no home page; point a visitor at the docs."""
+    return {"name": "Formflow API", "docs": "/docs", "health": "/api/health"}

@@ -9,6 +9,11 @@ def new_form(client, *question_types):
     return form, questions
 
 
+def test_health_check_answers_on_both_paths(client):
+    assert client.get("/api/health").json() == {"status": "ok"}
+    assert client.get("/health").status_code == 200  # the path Render's health check calls
+
+
 def test_seed_gives_two_published_forms_with_responses(client):
     forms = client.get("/api/forms").json()
     published = [f for f in forms if f["status"] == "published"]
